@@ -1,0 +1,973 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[latin1]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{mathabx}
+\usepackage{stmaryrd}
+\usepackage{amsthm}
+\usepackage[left=2.5cm,right=2cm,top=2.5cm,bottom=2cm]{geometry}
+\usepackage[backend=bibtex,style=numeric]{biblatex}
+\usepackage{csquotes}
+\addbibresource{biblio.bib}
+
+\begin{document}
+
+
+
+\newcommand{\mcd}{\text{MCD}}
+\theoremstyle{definition}
+\newtheorem{def.}{Definición}[section]
+\newtheorem{lema}{Lema}[section]
+\newtheorem{teo.}{Teorema}[section]
+\newtheorem{cor.}{Corolario}[section]
+\newtheorem{ej}{Ejemplo}[section]
+\newtheorem*{obs*}{Observación}
+\newtheorem*{not.}{Notación}
+\newtheorem*{nota}{Nota}
+
+\section{Introducción a la Computación Cuántica}
+
+La computación cuántica es un área relativamente nueva de la computación que ha tomado especial importancia en las últimas décadas. Por un lado, tiene la ventaja de que todo algoritmo clásicamente factible (palabra que usaremos en este caso solamente para decir que se puede computar en tiempo polinomial) puede ser ejecutado de manera eficiente en un computador cuántico. Por otro lado, hay ciertos problemas que pueden ser resueltos en un computador cuántico que nadie sabe cómo resolver eficientemente en computación clásica, como es el caso, por ejemplo, de la factorización de un número en sus divisores primos. El algoritmo de Shor, propuesto por Peter Shor en $1995$, permite descomponer un número en sus factores primos en tiempo polinomial con error acotado.\\
+
+Este algoritmo fue el que dio el mayor impulso a la computación cuántica, debido a su gran impacto práctico en criptografía, pues permitiría ``quebrar'' RSA en tiempo eficiente, que, por cierto, es el primer y más usado algoritmo criptográfico de clave pública. Por el momento, una de las limitantes es la implementación práctica de los computadores cuánticos, pero ya diversas empresas están trabajando en ello y se han podido construir computadores de unos cuántos ``qubits" (el equivalente cuántico del bit que, como veremos más adelante, tiene algunas ventajas sobre este).\\
+
+El objetivo de este documento es explicar de manera simple y breve el funcionamiento del algoritmo de Shor, pasando por la teoría básica de la computación cuántica, que veremos en esta sección, y las partes algebraica y matemática que permiten demostrar que su funcionamiento es correcto en un computador cuántico bien implementado.
+
+\subsection{Representación de un estado cuántico}
+
+Un computador cuántico se ve como una máquina que trabaja con vectores de tamaño $N=2^n$ y matrices unitarias de tamaño $N \times N = 2^n \times 2^n$ para algún natural $n$. En cada etapa de un algoritmo cuántico, tendremos un vector de tamaño $N$ sobre el que aplicaremos alguna operación matricial. Finalmente, el resultado se obtiene haciendo cierto tipo de medición que puede hacerse una única vez, pues ``destruye'' el sistema, y que solo retorna información parcial de nuestro estado final.
+
+\begin{def.}\label{estado} Un \textbf{estado cuántico} es un vector unitario $\bf a$ de $N=2^n$ entradas para algún natural $n$, donde la $i$-ésima entrada ($i = 0,...,N-1$) se denota por ${\bf a}(i)$ y cada entrada pertenece a $\mathbb{C}$.\\
+\[ {\bf a} = \left[ \begin{array}{c}
+{\bf a}(0)\\
+.\\
+.\\
+.\\
+{\bf a}(N-1)
+\end{array} \right] \]
+Cada índice $i$ representa un string de $n$ dígitos en $\{0,1\}^n$ de acuerdo al orden lexicográfico. La entrada ${\bf a}(i)$ es llamada una \textbf{amplitud}.
+\end{def.} 
+Dado un vector ${\bf a}$ en la hiperesfera unitaria de dimensión $N=2^n$, la medición de ${\bf a}$ nos retorna un índice $i$ con probabilidad igual a $|{\bf a}(i)|^2$, que es la razón por la cual decimos que ${\bf a}(i)$ es una amplitud.
+\begin{def.}\label{tipos de estado} Diremos que un estado es un \textbf{estado base} si es un vector canónico, es decir, de la forma:
+\[ {\bf e}_k = \left[ \begin{array}{c} 0\\
+.\\
+.\\
+.\\
+0\\
+1\\
+0\\
+.\\
+.\\
+.\\
+0
+\end{array} \right] \]
+(i.e., ${\bf e}(k)=1$ y ${\bf e}(j)=0$ para todo $j\neq k$). En caso contrario, simplemente diremos que es un \textbf{estado general} o bien una \textbf{superposición de estados}.
+\end{def.}
+
+\subsection{Operaciones}
+
+Necesitamos operaciones que mapeen desde la hiperesfera unitaria a la hiperesfera unitaria, por lo que nos restringimos a trabajar con \textbf{operaciones matriciales unitarias}, que además de preservar la medida, son lineales y son cerradas bajo el producto, es decir, el producto de matrices unitarias (que vendría siendo la composición de operaciones) también es una matriz unitaria.\\
+\begin{def.}\label{matriz adjunta} Dada una matriz $\bf U$, definimos la \textbf{matriz adjunta a} $\bf U$, denotada por $\bf U^*$, como:
+\[ {\bf U^*}[i,j] = \overline{{\bf U}[j,i]} \]
+En otras palabras, $\bf U^*$ es la matriz conjugada traspuesta a $\bf U$.
+\end{def.}
+\begin{def.}\label{matriz identidad} Definimos la {\bf matriz identidad} de tamaño $n$ como la matriz diagonal ${\bf I}_n$ tal que para cada $i\in \{ 0,...,n-1 \}$ se tiene ${\bf I}_n [i,i] = 1$.
+\end{def.}
+\begin{def.}\label{matriz unitaria} Dada una matriz $\bf U$ cuadrada de $n \times n$, decimos que $\bf U$ es una \textbf{matriz unitaria} si ${\bf U} \cdot {\bf U^*} = {\bf I}_n$.
+\end{def.}
+Para realizar operaciones necesitamos partir de un {\bf estado inicial}. Por simplicidad, como estado inicial siempre tomaremos al vector ${\bf e}_{0^n}$, que denota al string $0^n$. Si queremos armar un estado inicial distinto, simplemente tenemos que construirlo a partir de ${\bf e}_{0^n}$ utilizando transformaciones unitarias. De igual manera, todo \textbf{cambio de estado} se realiza por la aplicación de una transformación unitaria, de manera que solo se puede pasar de $\bf{a}$ a algún $\bf{b}$ a través de alguna matriz unitaria $\bf{U}$ tal que $\bf{b} = \bf{Ua}$. El \textbf{fin del algoritmo} ocurre por medición de algún estado final $\bf c$, que retorna de output solamente un índice (algún string booleano de $n$ bits) de acuerdo a la distribución de probabilidad dada por las entradas de $\bf c$. Cabe destacar que para programas booleanos, basta tener índices asociados a aceptar y rechazar.
+
+\subsection{Producto Tensorial}
+
+Dados dos espacios complejos, $\mathbb{C}^m$ y $\mathbb{C}^n$, con $m,n \geq 1$, usualmente utilizamos el producto cartesiano $\mathbb{C}^m \times \mathbb{C}^n$ para denotar al espacio $\mathbb{C}^{n+m}$ y que nos da vectores de tamaño $n+m$. El \textbf{producto tensorial} de estos espacios, en cambio, nos da un espacio $(m\cdot n)$-dimensional, $\mathbb{C}^{m\cdot n}$, donde los vectores, también de tamaño $m \cdot n$, tienen entradas $k\in \{1,...,m\cdot n\}$ en correspondencia con los pares $(i,j)$ con $i\in \{1,...,m\}$ y $j\in \{1,...,n\}$, de manera que podemos denotar ${\bf a}(k)$ como ${\bf a}(ij)$ en su lugar.
+\begin{def.}\label{ptens} Dados dos vectores ${\bf a} \in \mathbb{C}^m$ y ${\bf b}\in \mathbb{C}^n$, su \textbf{producto tensorial} ${\bf c}\in \mathbb{C}^{m\cdot n}$, denotado por ${\bf c} = {\bf a} \varotimes {\bf b}$, es un vector tal que ${\bf c}(ij) = {\bf a}(i)\cdot {\bf b}(j)$ para cada $i\in \{1,...,m\}$ y $j\in \{1,...,n\}$.
+\end{def.}
+\begin{def.}\label{sepenr} Dado un vector que denota un estado cuántico, decimos que es \textbf{separable} si puede escribirse como el producto tensorial de otros dos vectores. En caso contrario, decimos que está \textbf{enredado}.
+\end{def.}
+\begin{obs*} Todos los vectores básicos estándares de $\mathbb{C}^{m\cdot n}$ son separables (con notación $i\in \{0,...,m-1\}$, $j\in \{0,...,n-1\}$ se tiene ${\bf e}_{ij}={\bf e}_i \varotimes {\bf e}_j$), pero muchas de sus combinaciones no lo son (por ejemplo, $\frac{1}{\sqrt{2}} ({\bf e}_{00} + {\bf e}_{11})$). Cuando dos vectores están enredados cumplen ciertas propiedades que diferencian (hasta donde se sabe) a la computación cuántica de la computación clásica, pues de cierta forma, los qubits tienen un comportamiento entrelazado. Sin embargo, no abordaremos este aspecto en el documento.
+\end{obs*}
+\begin{def.}\label{ptensmat} Considere dos matrices $\bf U$ de $m\times n$ y $\bf V$ de $r\times s$ con entradas complejas, donde para $i\in \{1,...,n\}$ denotamos a la $i$-ésima columna de $\bf U$ por ${\bf u}_i \in \mathbb{C}^m$ y para $j \in \{1,..., s \}$ denotamos a la $j$-ésima columna de $\bf V$ por ${\bf v}_j \in \mathbb{C}^r$, es decir:
+\[ {\bf U} = \left[ {\bf u}_1 \; ... \; {\bf u}_n \right] \qquad \qquad {\bf V} = \left[ {\bf v}_1 \; ... \; {\bf v}_s \right] \]
+Definimos el \textbf{producto tensorial matricial} entre $\bf U$ y $\bf V$ (conocido usualmente como el producto tensorial de Kronecker), denotado por ${\bf W} = {\bf U} \varotimes {\bf V}$, como la matriz de $m\cdot r \times n\cdot s$ dada por:\\
+\[ {\bf W} = \left[ {\bf u}_1 \varotimes {\bf v}_1 \; ... \; {\bf u}_1 \varotimes {\bf v}_s\; {\bf u}_2 \varotimes {\bf u}_1 \; ... \; {\bf u}_2 \varotimes {\bf v}_s \; ..... \; {\bf u}_n \varotimes {\bf v}_1 \; ... \; {\bf u}_n \varotimes {\bf v}_s \right] \]
+\end{def.}
+\begin{teo.} Considere cuatro matrices con entradas complejas $\bf A$ de $m\times n$, $\bf B$ de $r \times s$, $\bf C$ de $n \times l$ y $\bf D$ de $s \times t$, para ciertos naturales positivos $m, r, n, s, l$ y $t$. El producto tensorial de Kronecker satisface la siguiente igualdad:
+\[ ({\bf A} \varotimes {\bf B})\cdot ({\bf C} \varotimes {\bf D}) = ({\bf A} \cdot {\bf C}) \varotimes ({\bf B} \cdot {\bf D}) \]
+\end{teo.}
+\begin{proof} \begin{not.} Dada una matriz $\bf X$, denotamos su $j$-ésima columna por ${\bf X}_{\bullet j}$.\\
+\end{not.}
+Notemos primero que los productos están bien definidos. En efecto, dado que $\bf A$ es de $m\times n$ y $\bf B$ es de $r \times s$, se tiene que $({\bf A} \varotimes {\bf B})$ es de $mr \times ns$.\\
+
+Al igual que en el caso vectorial, una posición en la matriz dada por un par $[a,b]$ con $a \in \{1,...,mr\}$ y $b \in \{1,..., ns \}$ puede ser representada por dos pares $[ij, kh]$ con $i \in \{1,..., m\}, j \in \{1,..., r\}, k \in \{1,...,n\}$ y $h \in \{1,..., s\}$. Así, por la definición de producto tensorial entre matrices, tenemos que:
+\begin{eqnarray*}
+({\bf A} \varotimes {\bf B})_{\bullet(kh)} &= & A_{\bullet k} \varotimes B_{\bullet h}
+\end{eqnarray*}
+Luego, aplicando la definición de producto tensorial entre vectores, se tiene que:
+\begin{eqnarray*}
+({\bf A} \varotimes {\bf B})[ij, kh] &= & A_{\bullet k}(i) B_{\bullet h}(j)
+\end{eqnarray*}
+Análogamente, dado que $\bf C$ es de $n \times l$ y $\bf D$ es de $s \times t$, se tiene que $({\bf C} \varotimes {\bf D})$ es de $ns \times lt$. Una posición dada por el par $[a,b]$ con $a \in \{1,...,ns \}$ y $b \in \{1,..., lt \}$ puede ser representada por dos pares $[uv, wx]$ con $u \in \{1,...,n\}, v\in \{1,...,s\}, w\in \{1,...,l\}$ y $x \in \{1,...,t\}$. Así, con el mismo razonamiento, obtenemos que:
+\begin{eqnarray*}
+({\bf C} \varotimes {\bf D})[uv, wx] &= & C_{\bullet w}(u) D_{\bullet x}(v)
+\end{eqnarray*}
+Consecuentemente, el producto $({\bf A} \varotimes {\bf B})\cdot ({\bf C} \varotimes {\bf D})$ define una matriz de $ mr \times lt$. Luego, una posición en la matriz dada por un par $[a,b]$ con $a\in \{1,...,mr\}$ y $b\in \{1,...,lt \}$ estará dada por dos pares $[ij, kh]$ con $i\in \{1,...,m\}, j\in \{1,..., r \}, k \in \{1,...,l \}$ y $h \in \{1,..., t\}$. Desarrollando el producto interno, se tiene que:
+\begin{eqnarray*}
+({\bf A} \varotimes {\bf B})\cdot ({\bf C} \varotimes {\bf D}) [ij, wx] = \sum_{k=1}^m \sum_{h=1}^s {\bf A}_{\bullet k}(i) {\bf B}_{\bullet h}(j) {\bf C}_{\bullet w}(k) {\bf D}_{\bullet x}(h)
+\end{eqnarray*}
+Por otra parte, veamos que el producto del lado izquierdo también está bien definido. En efecto, como $\bf A$ es de $m \times n$ y $\bf C$ es de $n \times l$, ${\bf A}\cdot {\bf C}$ es una matriz de $m \times l$. Del mismo modo, como $\bf B$ es de $r \times s$ y $\bf D$ es de $s \times t$, su producto ${\bf B} \cdot {\bf D}$ es de $r \times t$. Con esto concluimos que $({\bf A} \cdot {\bf C}) \varotimes ({\bf B} \cdot {\bf D})$ es de $mr \times lt$ como queríamos.\\
+
+Notemos ahora que por definición del producto tensorial matricial, se tiene que:
+\[ ({\bf A} \cdot {\bf C}) \varotimes ({\bf B} \cdot {\bf D})
+ = \left[ ({\bf A}\cdot {\bf C})_{\bullet 1} \varotimes ({\bf B} \cdot {\bf D})_{\bullet 1} \, ... \,  ({\bf A}\cdot {\bf C})_{\bullet 1} \varotimes ({\bf B} \cdot {\bf D})_{\bullet t} \, ... \, ({\bf A}\cdot {\bf C})_{\bullet l} \varotimes ({\bf B} \cdot {\bf D})_{\bullet 1} \, ... \,  ({\bf A}\cdot {\bf C})_{\bullet l} \varotimes ({\bf B} \cdot {\bf D})_{\bullet t}\right] \]
+De esta manera, se tiene que:
+\[ ({\bf A} \cdot {\bf C}) \varotimes ({\bf B} \cdot {\bf D})_{\bullet (wx)} = ({\bf A}\cdot {\bf C})_{\bullet w} \varotimes ({\bf B} \cdot {\bf D})_{\bullet x} \]
+Con lo que finalmente se obtiene que:
+\begin{eqnarray*}
+({\bf A} \cdot {\bf C}) \varotimes ({\bf B} \cdot {\bf D}) [ij, wx] &= &(({\bf A}\cdot {\bf C})_{\bullet w} \varotimes ({\bf B} \cdot {\bf D})_{\bullet x}) (ij)\\
+& = & ({\bf A}\cdot {\bf C})_{\bullet w} (i) \cdot ({\bf B} \cdot {\bf D})_{\bullet x} (j)\\
+& = & ({\bf A}\cdot {\bf C})[i,w] \cdot ({\bf B} \cdot {\bf D})[x,j]\\
+& = & \left(\sum_{k=1}^n {\bf A}_{\bullet k}(i)\cdot {\bf C}_{\bullet w}(k)\right) \cdot \left(\sum_{h=1}^s {\bf B}_{\bullet h}(j) \cdot {\bf D}_{\bullet x}(h)\right)\\
+& = & \sum_{k=1}^m \sum_{h=1}^s {\bf A}_{\bullet k}(i) {\bf B}_{\bullet h}(j) {\bf C}_{\bullet w}(k) {\bf D}_{\bullet x}(h)
+\end{eqnarray*}
+\end{proof}
+\begin{obs*} El producto tensorial entre matrices da una matriz tal que al realizar la multiplicación por la izquierda sobre un vector ${\bf c} \in \mathbb{C}^{n\cdot s}$ tal que ${\bf c} = {\bf a} \varotimes {\bf b}$ con ${\bf a}\in \mathbb{C}^r$ y ${\bf b}\in \mathbb{C}^s$, se tiene que:
+\[ ({\bf Wc})(ij) = ({\bf Ua})(i) \cdot ({\bf Vb})(j) \]
+Notemos que como todo vector ${\bf d}\in \mathbb{C}^{n\cdot s}$ se puede escribir como:
+\[ {\bf d} = \sum_{i=1}^n \sum_{j=1}^s {\bf d}(ij) \cdot ({\bf e_i} \varotimes {\bf e_j}) \]
+Tenemos que el vector $\bf Wd$ se puede escribir como:
+\[ {\bf Wd} = \sum_{i=1}^n \sum_{j=1}^s {\bf d}(ij) ({\bf Ue}_i)\varotimes ({\bf Ve}_j) \] 
+Además, es fácil notar que para matrices $\bf A$, $\bf B$ y $\bf C$, con $\bf A$ y $\bf B$ de mismas dimensiones, se cumple la siguiente igualdad:
+\[ \left( {\bf A} + {\bf B} \right) \varotimes {\bf C} = {\bf A} \varotimes {\bf C} + {\bf B} \varotimes {\bf C} \]
+\end{obs*}
+\begin{def.}
+Dada una matriz $\bf A$ y un número natural $m$, entonces definimos la $m$-ésima potencia tensorial de $A$ como:
+\[ A^{\varotimes m} = \underbrace{A \varotimes ... \varotimes A}_{m\text{-veces }A}\]
+\end{def.}
+\begin{ej}
+La matriz identidad de $2^n\times 2^n$ puede escribirse en función de la matriz identidad $\bf I$ de $2 \times 2$ como ${\bf I}_{2^n} = {\bf I}^{\varotimes n}$.
+\end{ej}
+La clave del uso de los productos tensoriales está en que nos dan una representación compacta de lo que está ocurriendo, de manera que con operaciones relativamente sencillas podemos cambiar completamente el estado. A nivel cuántico, podemos trabajar de esta forma sobre un qubit (como objeto físico), el cual puede encontrarse en múltiples estados simultáneamente. La ventaja está entonces en saber usar estas propiedades adecuadamente para mantener factibilidad (visto como eficiencia) a pesar de estar trabajando con matrices de tamaño exponencial.
+
+\subsection{Circuitos y funciones factibles}
+
+\begin{def.}\label{fbas} Definimos las funciones unitarias y binarias que surgen a partir de los conectivos básicos $\lnot$, $\land$, $\lor$ y agregamos la disyunción exclusiva $\varoplus$:
+\begin{itemize}
+\item $\text{NOT}:\{0,1\} \rightarrow \{0,1\}$ tal que $\text{NOT}(x_0) =   1-x_1$. Vale decir, $\text{NOT}(x_0)$ representa a $\lnot x_0$.
+\item $\text{AND}:\{0,1\}^2 \rightarrow \{0,1\}$  tal que $\text{AND}(x_0, x_1) = 1$ si y solo si $x_0=x_1 = 1$. Vale decir, $\text{AND}(x_0, x_1)$ representa a $x_0 \land x_1$.
+\item $\text{OR}:\{0,1\}^2 \rightarrow \{0,1\}$ tal que $\text{OR}(x_0,x_1) =  1$ si y solo si $x_0+x_1 \geq 1$. Vale decir, $\text{OR}(x_0, x_1)$ representa a $x_0 \lor x_1$.
+\item $\text{XOR}: \{0,1\}^2 \rightarrow \{0,1\}$ tal que $\text{XOR}(x_0,x_1) = 1$ si y solo si $x_0+x_1 = 1$. Vale decir, $\text{XOR}(x_0, x_1)$ representa a $x_0 \varoplus x_1$.
+\end{itemize}
+Consideramos también las extensiones $n$-arias de AND, OR y XOR:
+\begin{itemize}
+\item $\text{AND}:\{0,1\}^n \rightarrow \{0,1\}$  tal que $\text{AND}(x_0,..., x_{n-1}) = 1$ si y solo si $x_0=...=x_{n-1} = 1$. Vale decir, $\text{AND}(x_0,...,x_{n-1})$ representa a $x_0 \land ... \land x_{n-1}$.
+\item $\text{OR}:\{0,1\}^n \rightarrow \{0,1\}$ tal que $\text{OR}(x_0,..., x_{n-1}) = 1$ si y solo si $x_0 + ... + x_{n-1} \geq 1$. Vale decir, $\text{OR}(x_0,...,x_{n-1})$ representa a $x_0 \lor ... \lor x_{n-1}$.
+\item $\text{XOR}: \{0,1\}^n \rightarrow \{0,1\}$ tal que $\text{XOR}(x_0, ..., x_{n-1}) = 1$ si y solo si $(x_0+ ... + x_{n-1})\mod 2 = 1$. Vale decir, $\text{XOR}(x_0,...,x_{n-1})$ representa a $x_0 \varoplus ... \varoplus x_{n-1}$.
+\end{itemize}
+\begin{not.}
+Abusando de notación, escribiremos generalmente $x_0 \land ... \land x_{n-1}$ en lugar de $\text{AND}(x_0,..., x_{n-1})$, $x_0 \lor ... \lor x_{n-1}$ en lugar de $\text{OR}(x_0,..., x_{n-1})$ y $x_0 \varoplus ... \varoplus x_{n-1}$ en lugar de $\text{XOR}(x_0, ..., x_{n-1})$.
+\end{not.}
+Con notación similar, definimos sus extensiones ``bit a bit'' o ``bitwise'' sobre strings booleanos de $n$ bits, $x = (x_0,...,x_{n-1})$ e $y = (y_0, ..., y_{n-1})$, como:
+\begin{itemize}
+\item $\text{bitwise-AND}:\{0,1\}^{n} \times \{0,1\}^n \rightarrow \{0,1\}^n$  tal que $\text{bitwise-AND}(x,y)= x \land y = (\text{AND}(x_0, y_0), ..., \text{AND}(x_{n-1},y_{n-1}))$.
+\item $\text{bitwise-OR}:\{0,1\}^{n} \times \{0,1\}^n \rightarrow \{0,1\}^n$ tal que $\text{bitwise-OR}(x,y)= x \lor y = (\text{OR}(x_0, y_0), ..., \text{OR}(x_{n-1},y_{n-1}))$.
+\item $\text{bitwise-XOR}: \{0,1\}^{n} \times \{0,1\}^n \rightarrow \{0,1\}$ tal que $\text{bitwise-XOR}(x,y) = x \varoplus y = (\text{XOR}(x_0, y_0), ..., \text{XOR}(x_{n-1}, y_{n-1}))$.
+\end{itemize}
+\end{def.}
+\begin{def.}\label{prodbool} Dados dos strings booleanos $x$ e $y$ de $n$ bits, definimos su \textbf{producto interno booleano} como:
+\[ x \bullet y = (x_0\land y_0)\varoplus ... \varoplus (x_{n-1} \land y_{n-1})\]
+\end{def.}
+\begin{def.}\label{circuito} Una función $g: \{0,1\}^2 \rightarrow \{0,1\}$ es una \textbf{compuerta}. Si una función $f: \{0,1\}^n \times \{0,1\}^n \rightarrow \{0,1\}^n$ es tal que para todo par de strings de $n$ bits $x$ e $y$, se tiene $f(x,y) = f((x_0,..., x_{n-1}), (y_0,..., y_{n-1})) = (g_0 (x_0, y_0), ..., g_{n-1} (x_{n-1}, y_{n_1}))$ donde cada $g_i$ ($i = 0,...,n-1$) es una compuerta, entonces decimos que $f$ es un \textbf{circuito} de $n$ compuertas.
+\end{def.}
+\begin{def.}\label{familia} Una función $f:\{0,1\}^* \rightarrow \{0,1\}^*$ es la \textbf{representación de una familia de funciones} de la forma $f_n$, denotado por $f=\{f_n\}_{n\geq 1}$, si cada $f_n$ es un circuito que toma solo inputs de tamaño $n$ y $f$ representa a cada $f_n$, es decir, para cada string $x$ de $m$-bits, se tiene que $f(x) = f_m(x)$.
+\end{def.}
+\begin{def.}\label{factible} Una función booleana $f=\{f_n\}_{n\geq 1}$ se dice \textbf{factible} si existe un polinomio $p: \mathbb{N} \rightarrow \mathbb{R}^+$ tal que cada $f_n$ es una función booleana sobre $n$-bits que se puede computar por circuitos de a lo más $p(n)$ compuertas.
+\end{def.}
+
+\subsection{Factibilidad cuántica}
+
+En computación cuántica, computar una función $f$ de la forma $y=f(x)$ con $y = (y_0,..., y_{m-1})$ y $x = (x_0,..., x_{n-1})$ requerirá $n+m$ coordenadas para mantener el uso de operaciones matriciales unitarias. Para ello, consideramos la extensión $F$, definida como:
+\[F(x_0,..., x_{n-1}, z_0,...,z_{m-1}) = (x_0,..., x_{n-1}, z_0 \varoplus y_0,...,z_{m-1} \varoplus y_{m-1})\]
+De manera que al tomar $z_0=...= z_{m-1}=0$, computamos $y$ en las últimas $m$ coordenadas y, además, $F$ es su propia inversa, pues $F(F(x,z)) = F(x,z\varoplus y) = (x, (z\varoplus y) \varoplus y) = (x, z)$.\\
+
+Adicionalmente, podríamos requerir algunas variables auxiliares, que no nos interesarán en la medición. Si tenemos $n$ variables de entrada, $m$ variables de salida y usamos $h$ variables auxiliares, necesitaremos en total  un vector de tamaño $2^{n+m+h}$ para representar los posibles estados para las $n+m+h$ variables, que llamaremos \textbf{qubits}. Esto claramente es infactible de computar clásicamente de manera directa. A las primeras $n+m$ variables las llamaremos \textbf{líneas de qubits}, mientras que a las siguientes $h$ variables las llamaremos \textbf{ancilla qubits}.\\
+
+Tenemos entonces el problema de que el tamaño del problema parece crecer exponencialmente de manera muy fácil, por lo que no podemos aplicar cualquier operación. La idea será tomar matrices pequeñas (de un tamaño fijo) en los productos tensoriales, de manera a solo afectar pocos qubits por operación dejando el resto intacto (para ello, usamos productos tensoriales con la identidad).
+\begin{def.}\label{matbas} Una \textbf{matriz básica} es una matriz cuadrada de tamaño $2^k \times 2^k$ para algún $k\in \{1,2,3\}$.
+\end{def.}
+\begin{def.}\label{matunbas} Una \textbf{operación básica} es una matriz $\bf U$ cuadrada de tamaño $2^n \times 2^n$ unitaria tal que $\bf U$ puede escribirse como el producto tensorial de una matriz básica con matrices identidades. Es decir, $\bf U$ es de la forma ${\bf U} = {\bf I}_{2^i} \varotimes {\bf B} \varotimes {\bf I}_{2^j} = {\bf I}^{\varotimes i}\varotimes {\bf B} \varotimes {\bf I}^{\varotimes j}$ donde $\bf B$ es una matriz básica de tamaño $2^k$ tal que $i+k+j = n$.
+\end{def.}
+\begin{def.}\label{famfact} Una familia de operaciones $\{{\bf U}_n\}_{n\geq 1}$ de operaciones de tamaño $2^n \times 2^n$ definida para todo natural $n$ se dice \textbf{factible} si existe un polinomio $p$ en $n$ tal que cada operación ${\bf U}_n$ en la familia se puede escribir como producto de a lo más $l_n\leq p(n)$ operaciones básicas, es decir ${\bf U}_n={\bf U}_{n,1}\cdot ...\cdot {\bf U}_{n,l_n}$ donde cada ${\bf U}_{n,i}$ es una operación básica ($i=1,...,l_n$).
+\end{def.}
+\begin{def.}\label{compfact} Una \textbf{computación cuántica $\mathcal{C}$ sobre inputs de tamaño} $n$, es una operación de tamaño $2^s\times 2^s$, con $n\leq s$, obtenida como un producto finito de operaciones ${\bf U}_i$ de tamaño $2^s\times 2^s$ sobre el vector de inicio ${\bf e}_0$, donde $s$ es la cantidad total de qubits utilizados para realizar la operación. Una \textbf{computación cuántica} es una familia de computaciones cuánticas sobre $n$, para cada $n\geq 1$. Si una computación cuántica es obtenido como el producto de $t$ operaciones de computaciones cuánticas factibles, y además $s$ y $t$ están acotados superiormente por algún polinomio fijo en $n$, entonces decimos que es una \textbf{computación cuántica factible}.
+\end{def.}
+Un resultado importante nos dice que toda función clásicamente factible tiene una computación cuántica factible que nos entrega el resultado.
+
+\subsection{Matrices de Fourier y Matrices de Hadamard}
+
+Algunas de las matrices son especialmente importantes porque no se sabe cómo emular su funcionamiento en computación clásica y permiten el ``enredamiento'' en computación cuántica, que es la razón por la que algunos algoritmos, como el que veremos más adelante, son más eficientes que los conocidos en computación clásica. Destacan particularmente las matrices de Fourier y las matrices de Hadamard.
+\begin{def.}\label{MF} La \textbf{matriz de Fourier} de orden $N$ es la matriz ${\bf F}_N$ dada por:
+\[ {\bf F}_N = \frac{1}{\sqrt{N}} \left[ \begin{array}{c c c c c c c c}
+1	&1	&1 &1 &. &. &. &1\\
+1 &\omega &\omega^2 &\omega^3 &. &. &. &\omega^{N-1}\\
+1 &\omega^2 &\omega^4 &\omega^6 &. &. &. &\omega^{N-2}\\
+1 &\omega^3 &\omega^6 &\omega^9 &. &. &. &\omega^{N-3}\\
+. &. &. &. &.&&&.\\
+. &. &. &. &&.&&.\\
+. &. &. &. &&&.&.\\
+1 &\omega^{N-1} &\omega^{N-2} &\omega^{N-3} &. &. &. &\omega
+\end{array} \right] \]
+donde ${\bf F}_N[i,j] = \frac{1}{\sqrt{N}} \omega^{(i\cdot j \mod N)}$ para cada $i$ y $j$ entre $1$ y $N-1$ y $\omega = e^{\frac{2\pi i}{N}}$ es la raíz $N$-ésima de la unidad.
+\end{def.}
+\begin{def.}\label{H} La \textbf{matriz de Hadamard} de orden $N$ es la matriz ${\bf H}_N$ definida inductivamente como:
+\[ {\bf H}_2 = \frac{1}{\sqrt{2}} \left[ \begin{array}{c c}
+1 &1\\
+1 &-1
+\end{array} \right] \]
+\[ {\bf H}_N = {\bf H}_{N/2}\varotimes {\bf H}_2 =  \frac{1}{\sqrt{2}} \left[ \begin{array}{c c}
+{\bf H}_{N/2} & {\bf H}_{N/2}\\
+{\bf H}_{N/2} &-{\bf H}_{N/2}
+\end{array} \right] \]
+donde es posible demostrar que ${\bf H}_N[i,j] = \frac{1}{\sqrt{N}} (-1)^{i\bullet j}$.
+\end{def.}
+Los siguientes lemas, que no demostraremos, salen de manera sencilla desde las expresiones generales para las componentes de las matrices ${\bf F}_N$ y ${\bf H}_N$.
+\begin{lema}\label{Fij} Para cualquier vector ${\bf a}\in \mathbb{C}^{N}$, se tiene que el vector ${\bf b} = {\bf F}_N \cdot {\bf a}$ satisface lo siguiente:
+\[ {\bf b}(x) = \frac{1}{\sqrt{N}} \sum_{t=0}^{N-1} \omega^{(x\cdot t\mod N)} \cdot {\bf a}(t) \]
+Donde $x$ y $t$ son interpretados como los números que representan en binario.
+\end{lema}
+\begin{lema}\label{Hij}: Para cualquier vector ${\bf a} \in \mathbb{C}^{N}$, se tiene que el vector ${\bf b} = {\bf H}_N \cdot {\bf a}$ satisface lo siguiente:
+\[ {\bf b}(x) = \frac{1}{\sqrt{N}} \sum_{t=0}^{N-1} (-1)^{x\bullet t} \cdot {\bf a}(t) \]
+\end{lema}
+
+Cabe destacar en esta sección que estas dos matrices son especiales por dos razones. En primer lugar, nadie sabe cómo imitar su comportamiento en computación clásica manteniendo la factibilidad. En segundo lugar, sus propiedades nos permiten generar los outputs que están determinados con una densidad de probabilidad y no de manera determinista. Ambas cosas se deben, de hecho, a la propiedad de enredamiento que producen. Al tener vectores enredados, virtualmente estamos operando simultáneamente sobre un mayor número de bits (que puede ser exponencial). Esto permite que algoritmos mucho más eficientes hayan surgido en computación cuántica, en lo que algunos autores han llamado ``aceleración exponencial''. A pesar de lo que la intuición podría indicarnos, nadie ha podido demostrar dicha diferencia de poder con respecto a la computación clásica hasta la fecha.
+
+\subsection{Representación de un circuito cuántico}
+
+Toda operación ${\bf U}$ factible es expresable mediante el circuito cuántico que la representa:
+\begin{itemize}
+\item Las primeras n líneas son los inputs: $x_1, ..., x_n$.
+\item Las compuertas sobre $1$ línea se colocan como un cuadrado con el nombre de la matriz de $2\times 2$ que hace la operación.
+\item Las compuertas multi-arias tienen cables ``cruzados'', que suelen también representarse como cajas o bien explícitamente para algunas expresiones usualmente utilizadas (como el operador CNOT mostrado más adelante).
+\item Dos matrices alineadas verticalmente indican que hay un producto tensorial involucrado. Si se omite la matriz en una línea, quiere decir que se está usando la matriz identidad en ese producto tensorial.
+\end{itemize}
+\begin{ej} Si uno quisiera realizar el circuito que toma una entrada de dos qubits y le aplica la operación ${\bf U} = \text{CNOT}\cdot ({\bf H}\varotimes {\bf I})$, donde CNOT es la compuerta que computa $f(x_1, x_2) = (x_1, x_1 \varoplus x_2)$, dada por:
+\[ \text{CNOT} = \left[ \begin{array}{c c c c}
+1 &0 &0 &0 \\
+0 &1 &0 &0 \\
+0 &0 &0 &1 \\
+0 &0 &1 &0
+\end{array} \right] \]
+Tendríamos entonces algo como:
+\begin{center}
+\includegraphics[scale=0.5]{cuantcirc1.png}
+\end{center}
+También podemos omitir las identidades involucradas y usar la notación común para representar la compuerta CNOT:
+\begin{center}
+\includegraphics[scale=0.5]{cuantcirc2.png}
+\end{center}
+\end{ej}
+Ahora bien, dada una función $f:\{0,1\}^n \rightarrow \{0,1\}^m$ (con $n>m$), para unitarizarla podemos imaginar una extensión de $f$ que computa una función $f': \{0,1\}^n \rightarrow \{0,1\}^n$ en el que solamente nos importen $m$ qubits indexados de alguna forma. Además, queremos que la función sea invertible, obteniendo la función $F$ que finalmente computa $F(x,z) = (x, z\varoplus f(x))$. Nótese que $F(x,0^m) = (x, 0^m \varoplus f(x)) = (x, f(x))$.\\
+
+Sin pérdida de la generalidad supongamos que el output que nos importa está en las últimas $m$ líneas del output de $f'$, que es posible computar con alguna matriz ${\bf U}$ de $2^n \times 2^n$. Además consideramos la matriz ${\bf U}^*$ que es la matriz adjunta de $\bf U$. Lo que se hace entonces es realizar la siguiente computación cuántica para representar $F$:
+\[ ({\bf U}^* \varotimes {\bf I}_m){\bf C}_m ({\bf U} \varotimes {\bf I}_m) ({\bf e}_x \varotimes {\bf e}_{0^m}) \]
+Donde ${\bf C}_m$ es el producto de CNOT's aplicados sobre los $m$ qubits que nos interesan (utilizando el producto tensorial con la identidad para abarcar a los n qubits involucrados y técnicamente con el requerimiento de usar una matriz que nos permita dejar juntas las líneas sobre las que queremos trabajar, pero no entraremos en detalles, ya que es una operación factible de todos modos) y ${\bf e}_x$ es el vector de la base estándar que representa a $x$, es decir, aquel que tiene $1$ en la entrada indexada por $x$.\\
+
+El circuito asociado a $F$ a partir de $\bf U$ se ve como sigue:
+\begin{center}
+\includegraphics[scale=0.5]{cuantcircgen.png} 
+\end{center}
+\begin{ej}
+Sea $f: \{0,1\}^5 \rightarrow \{0,1\}^2$ una función clásicamente computable y sea $\bf U$ la matriz que la representa. Considere la matriz SWAP de $4\times 4$ dada por:
+\[ \text{SWAP} = \left[ \begin{array}{c c c c}
+1 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 1
+\end{array} \right] \]
+Esta matriz nos permite permutar dos qubits consecutivos en un circuito cuántico (en producto tensorial con las matrices identidad correspondientes). La computación cuántica para $f$ (en su forma invertible $F$) estará dada entonces por el siguiente circuito:
+\begin{center}
+\includegraphics[scale=0.6]{ejcuantcirc.png}
+\end{center}
+Si se tiene que $f(x_1, ..., x_5) = (y_1, y_2)$, entonces la computación de $F(x_1, ..., x_5, 0, 0) = (x_1, ..., x_5, 0 \varoplus y_1, 0 \varoplus y_2) = (x_1, ..., x_5, y_1, y_2)$ está dada por:
+\[ {\bf U}_F ({\bf e}_{x} \varotimes {\bf e}_{00}) = ({\bf U}_8 \cdot {\bf U}_7 \cdot {\bf U}_6 \cdot {\bf U}_5 \cdot {\bf U}_4 \cdot {\bf U}_3 \cdot {\bf U}_2 \cdot {\bf U}_1)\cdot ({\bf e}_x \varotimes {\bf e}_00) \]
+Donde:
+\begin{eqnarray*}
+{\bf U}_1 & = & {\bf U} \varotimes {\bf I}^{\varotimes 2} \\
+{\bf U}_2 & = & {\bf I}^{\varotimes 3} \varotimes \text{SWAP} \varotimes {\bf I}^{\varotimes 2} \\
+{\bf U}_3 & = & {\bf I}^{\varotimes 4} \varotimes \text{CNOT} \varotimes {\bf I} \\
+{\bf U}_4 & = & {\bf U}_2 \\
+{\bf U}_5 & = & {\bf I}^{\varotimes 5} \varotimes \text{SWAP} \\
+{\bf U}_6 & = & {\bf U}_3 \\
+{\bf U}_7 & = & {\bf U}_5 \\
+{\bf U}_8 & = & {\bf U}^* \varotimes {\bf I}^{\varotimes 2}\\
+\end{eqnarray*}
+\end{ej}
+Esta es una de las grandes ventajas de la computación cuántica, ya que dada una función $f$ clásicamente factible, podemos construir una matriz ${\bf U}_f$ que es una operación cuántica factible, que, a su vez, nos permite construir la matriz ${\bf U}_F$, llamada el ``oráculo de Grover de $f$'', para la matriz asociada a la función $F$ haciendo una cantidad polinomial de operaciones.\\
+
+\begin{def.}\label{superfunc}
+Sea $f:\{0,1\}^n \rightarrow \{0,1\}^m$ una función factible. Definimos como la \textbf{superposición funcional} de $f$ al vector ${\bf b} \in \mathbb{C}^{n\cdot m}$ tal que:
+\[ {\bf b}(xy) = \left\{ \begin{array}{l r}
+\frac{1}{\sqrt{N}} & \text{si } y = f(x) \\
+0 & \text{en otro caso}
+\end{array} \right. \]
+\end{def.}
+Un resultado interesante y útil es que dada una función factible $f$, es factible una operación que recibe ${\bf e}_{0^{n+m}}$ (es decir, input inicial $0^{n+m}$) y calcula $\bf b$. Considerando la matriz ${\bf U}_F$ computa $f$ en su forma invertible, basta construir la computación cuántica dada por:
+\begin{eqnarray*}
+{\bf b} & = & {\bf U}_F ({\bf H}^{\varotimes n} \varotimes {\bf I}^{\varotimes m} ) ({\bf e}_{0^{n}} \varotimes {\bf e}_{0^m})\\
+\end{eqnarray*}
+En efecto, notando que:
+\begin{eqnarray*}
+{\bf H}^{\varotimes n} {\bf e}_{0^n} & = &\frac{1}{\sqrt{N}} \sum_{x\in \{0,1\} } {\bf e}_x
+\end{eqnarray*}
+Se tiene que:
+\begin{eqnarray*}
+({\bf H}^{\varotimes n} \varotimes {\bf I}^{\varotimes m})({\bf e}_{0^n} \varotimes {\bf e}_{0^m}) & = & {\bf H}^{\varotimes n} \varotimes {\bf e}_{0^n})\varotimes ({\bf I}^{\varotimes m} \varotimes {\bf e}_{0^m}) \\
+& = & (\frac{1}{\sqrt{N}} \sum_{x\in \{0,1\} } {\bf e}_x)\varotimes {\bf e}_{0^m} \\
+& = & \frac{1}{\sqrt{N}} \sum_{x\in \{0,1\} } {\bf e}_x \varotimes {\bf e}_{0^m}
+\end{eqnarray*}
+Finalmente, obtenemos que:
+\begin{eqnarray*}
+{\bf b} & = & {\bf U}_F \left( \frac{1}{\sqrt{N}} \sum_{x\in \{0,1\}^n} {\bf e}_x \varotimes {\bf e}_{0^m} \right) \\
+& = & \frac{1}{\sqrt{N}} \sum_{x \in \{0,1\}^n} {\bf U}_F ({\bf e}_x \varotimes {\bf e}_{0^m}) \\
+& = & \frac{1}{\sqrt{N}} \sum_{x \in \{0,1\}^n} {\bf e}_x \varotimes {\bf e}_{f(x) \varoplus 0^m} \\
+& = & \frac{1}{\sqrt{N}} \sum_{x \in \{0,1\}^n} {\bf e}_x \varotimes {\bf e}_{f(x)}
+\end{eqnarray*}
+Esto nos permitirá generar el vector inicial $\bf a$ que utilizaremos en el algoritmo de Shor que veremos más adelante. Una alternativa para computar el vector $\bf b$ para el caso $m = n$ es considerar la computación cuántica dada por:
+\[ {\bf b} = \left( {\bf I}^{\varotimes n} \varotimes {\bf U}_f \right) {\bf C}_{2n} ({\bf H}^{\varotimes n} \varotimes {\bf I}^{\varotimes n}) \]
+Donde ${\bf U}_f$ es la matriz que computa $f$, es decir, ${\bf U}_f {\bf e}_x = {\bf e}_{f(x)}$, ${\bf C}_{2n}$ es la matriz que computa la función $g: \{0,1\}^n \times \{0,1\}^n \rightarrow \{0,1\}^n \times \{0,1\}^n$ dada por $g(x,y) = (x, x\varoplus y)$. Nótese que ambas operaciones son factibles cuántica y clásicamente. Con esta computación, se tiene que:
+\begin{eqnarray*}
+{\bf C}_{2n}({\bf H}^{\varotimes n} \varotimes {\bf I}^{\varotimes n}) & = & {\bf C}_{2n} \left( \frac{1}{\sqrt{N}} \sum_{x \in \{0,1\}^n}  {\bf e}_x \varotimes {\bf e}_{0^n} \right) \\
+& = & \frac{1}{\sqrt{N}} \sum_{x\in \{0,1\}^n} ({\bf e}_x \varotimes {\bf e}_{0^n}) \\
+& = & \frac{1}{\sqrt{N}} \sum_{x\in \{0,1\}^n} {\bf e}_x \varotimes {\bf e}_{x \varoplus 0^n} \\
+& = & \frac{1}{\sqrt{N}} \sum_{x\in \{0,1\}^n} {\bf e}_x \varotimes {\bf e}_{x}
+\end{eqnarray*}
+Finalmente, obtenemos el resultado deseado:
+\begin{eqnarray*}
+{\bf b} & = & \left( {\bf I}^{\varotimes n} \varotimes {\bf U}_f \right) (\frac{1}{\sqrt{N}} \sum_{x\in \{0,1\}^n} {\bf e}_x \varotimes {\bf e}_{x}) \\
+& = & \frac{1}{\sqrt{N}} \sum_{x\in \{0,1\}^n} \left( {\bf I}^{\varotimes n} \varotimes {\bf U}_f \right) ({\bf e}_x \varotimes {\bf e}_{x}) \\
+& = & \frac{1}{\sqrt{N}} \sum_{x\in \{0,1\}^n} \left( {\bf I}^{\varotimes n} \varotimes {\bf e}_x \right) ({\bf U}_f \varotimes {\bf e}_{x}) \\
+& = & \frac{1}{\sqrt{N}} \sum_{x \in \{0,1\}^n} {\bf e}_x \varotimes {\bf e}_{f(x)}
+\end{eqnarray*}
+\begin{obs*}
+Notar acá que en realidad no hacía falta usar $n = m$, si se construye adecuadamente el mismo operador ${\bf C}_m$ que usamos en la computación de $F$ a partir de $f$. En cualquier caso, es claro que la construcción del vector $\bf b$ es una operación factible.
+\end{obs*}
+
+\section{Algoritmo de Shor}
+
+\begin{normalsize}
+Sea $ M\in \mathbb{N} $, con $M\geq 2$, $f: \mathbb{N} \rightarrow \{ 0, ..., M-1 \} $ una función factible de computar y $r\in \mathbb{N}$ tales que para todo $x \in \mathbb{N}$ se tiene que:
+\begin{center}
+$f(x+r) = f(x),$
+\end{center}
+con además la promesa de que los valores $f(0), ..., f(r-1)$ son todos distintos. El algoritmo de Shor permite determinar el valor del período $r$ con cierta probabilidad en tiempo polinomial.
+
+\subsection{Números buenos}
+\begin{def.}\label{def1} Consideramos los naturales $M$ y $r$  para el problema que buscamos resolver. Sean $l \in \mathbb{N}$ y $Q = 2^l$ tales que $M^2 \leq Q < 2M^2$. Decimos que un entero $x \in \{ 0, ..., Q-1 \} $ es un \textbf{número bueno} si existe un entero $t$ relativamente primo al período $r$ y otro entero $k$ tales que
+\begin{center}
+$tQ - xr = k$ con $-\frac{r}{2} \leq k \leq \frac{r}{2}$
+\end{center}
+\end{def.}
+Más tarde, cuando estudiemos el algoritmo de Shor, nos interesará saber la probabilidad de encontrar un número bueno.\\
+
+\begin{lema}\label{lema1} Hay $\Omega(\frac{r}{\log \log r})$ números buenos.
+\end{lema}
+\begin{proof} La ecuación que define a los números buenos es equivalente a la siguiente ecuación módulo $r$:
+\begin{center}
+$tQ \equiv k \mod r$ con $-\frac{r}{2} \leq k \leq \frac{r}{2}.$
+\end{center}
+Si tomamos también $k$ en módulo $r$, tendríamos una ecuación modular cuya única restricción es $\mcd(t,r) = 1$. Por otra parte, tanto $k$ como $x$ se definen de manera única a partir de cada $t$ en la ecuación original. En efecto, notemos que:
+\begin{itemize}
+\item Para definir $k$ a partir de $t$ basta tomarlo primero en módulo $r$ haciendo $k=tQ \mod r$, que será un valor único en módulo $r$. Basta luego hacer la traslación necesaria al intervalo $\left[ -\frac{r}{2}, \frac{r}{2} \right]$.
+\item Para definir $x$ en términos de $t$, basta tomar $x = \frac{tQ - k}{r}$, también definidos de manera única por $t$.
+\item A simple vista no sabemos si dos diferencias pueden ser iguales, es decir, que a partir de dos $t$'s distintos podamos obtener un mismo $x$. Supongamos que tenemos $t_1 \neq t_2$, con $k_1$ y $k_2$ los valores de $k$ correspondientes calculados como se mencionó anteriormente, $x_1 = \frac{t_1 Q - k_1}{r}$ y $x_2 = \frac{t_2 Q - k_2}{r}$. Queremos demostrar que $x_1 \neq x_2$. Supongamos que son iguales para llegar a una contradicción. Además, sin perder generalidad, podemos suponer que $t_1 = \alpha + t_2$ para algún $\alpha \in \mathbb{N}$ con $\alpha \geq 1$. Entonces:
+\begin{eqnarray*}
+x_1 = x_2	&\Leftrightarrow	&t_1 Q - k_1 = t_2 Q - k_2 \\
+			&\Leftrightarrow	&\alpha Q + t_2 Q - k_1 = t_2 Q - k_2 \\
+			&\Leftrightarrow	&\alpha Q = k_1 - k_2.
+\end{eqnarray*}
+Pero entonces tendríamos $M^2 \leq \alpha Q = k_1 - k_2 \leq r \leq M$, lo que es una contradicción, puesto que $M\geq 2$.
+\end{itemize}
+
+De este modo, contar la cantidad de números buenos es equivalente a encontrar el número de valores de $t$ relativamente primos a $r$, que justamente definen a la función indicatriz de Euler, $\phi(r)$. Basta entonces encontrar una cota inferior para $\phi(r)$, pero es sabido que:
+\begin{center}
+$\phi(z)$ es $\Omega(\frac{z}{\log \log z}).$\footnote{De hecho, con constante aproximadamente $e^{-\gamma}$ donde $\gamma \approx 0.5773215$ es la constante de Euler-Mascheroni.}
+\end{center}
+Con esto se demuestra el lema.
+\end{proof}
+
+\subsection{La parte cuántica del algoritmo de Shor}
+Sean $l \in \mathbb{N}$ y $Q=2^l$ tales que $M^2 \leq Q < 2M^2$. Los vectores serán indexados por $xy$ donde $x$ e $y$ son strings booleanos de $l$-bits.
+\begin{enumerate}
+\item El vector de inicio ${\bf a}$ es la superposición funcional de $f$, i.e.:
+\[{\bf a}	(xy) = \left\{
+\begin{array}{l l l}
+ \frac{1}{\sqrt{Q}} & \text{ si } y=f(x). \\
+ 0 & \text{ en otro caso. }
+\end{array}
+\right.
+\]
+\item El siguiente vector, ${\bf b}$, resulta de aplicar ${\bf F_Q}$ a la parte $x$ de ${\bf a}$, i.e.:
+\[{\bf b} = ({\bf F_Q} \varotimes {\bf I_Q}) {\bf a}\]
+\item Medimos ${\bf b}$, obteniendo algún $xy$ específico y descartamos la parte $y$.
+\item Utilizamos computación clásica para verificar que $x$ sea un número bueno. Si no lo es, volvemos a 1.
+\end{enumerate}
+
+\subsection{Análisis de la parte cuántica}
+
+Sea $xy$ tal que $y$ está en el rango de $f$. Con $\omega = e^{\frac{2\pi i}{Q}}$ tenemos: 
+\begin{eqnarray*}
+{\bf b}(xy)	& =	& \sum_{u = 0}^{Q-1} \sum_{v=0}^{Q-1} ({\bf F}_Q \varotimes {\bf I}_Q)[xy, uv] \cdot {\bf a}(uv) \\
+& =	& \sum_{u = 0}^{Q-1} \sum_{v=0}^{Q-1} {\bf F}_Q [x,u] \cdot {\bf I}_Q[y,v] \cdot {\bf a}(uv) \\
+& = & \sum_{u=0}^{Q-1} \frac{1}{ \sqrt{Q} } \omega^{xu} {\bf a}(uy)
+\end{eqnarray*}
+Dado que $I_Q [y,v] = 1$ si $y=v$, pero $I_Q [y,v] = 0$ si $y \neq v$. Finalmente, obtenemos:
+\begin{eqnarray*}
+{\bf b}(xy) & = & \frac{1}{ \sqrt{Q} } \sum_{u=0}^{Q-1} \omega^{xu} {\bf a}(uy)\\
+& =	& \frac{1}{ \sqrt{Q} } \sum_{u:f(u) = y} \omega^{xu} {\bf a}(uy)\\
+& =	& \frac{1}{Q} \sum_{u\in f^{-1}(y)} \omega^{xu}.
+\end{eqnarray*}
+Sea $x_0$ el menor $x$ tal que $f(x)=y$. Como no se repiten valores dentro del período, notemos que:
+\begin{center}
+$f^{-1}(y) = \{x_0, x_0 +r, x_0 + 2r, ...\}.$
+\end{center}
+Sea $T = |f^{-1}(y)|$ Notando que $x_0 + (T-1)r \leq Q-1 \leq x_0 + Tr$, obtenemos que $T = 1 + \lfloor \frac{Q-1-x_0}{r} \rfloor$. Podemos reescribir ${\bf b}(xy)$ como:
+\begin{eqnarray*}
+{\bf b}(xy) & = &\frac{1}{Q} \sum_{k=0}^{T-1} \omega^{x(x_0+rk)}\\
+& = &\frac{\omega^{xx_0}}{Q} \sum_{k=0}^{T-1}\omega^{xrk} \\
+\end{eqnarray*}
+Si $\omega^{xr} = 1$, se tiene:
+\begin{eqnarray*}
+{\bf b}(xy)& = &\frac{\omega^{xx_0}}{Q} \sum_{k=0}^{T-1}\omega^{xrk}\\
+& = &\frac{T}{Q}
+\end{eqnarray*}
+De manera que:
+\begin{eqnarray}
+\left| {\bf b}(xy) \right| ^2 = \frac{T^2}{Q^2} \label{1}
+\end{eqnarray}
+Si en cambio $\omega^{xr}\neq 1$, se tiene entonces que:
+\begin{eqnarray*}
+{\bf b}(xy) & = &\frac{\omega^{xx_0}}{Q} \left(\frac{\omega^{Txr}-1}{\omega^{xr}-1}\right). 
+\end{eqnarray*}
+Notando ahora que $\omega^\alpha$ es unitario (vale decir, $|\omega^\alpha|=1$) y que $e^{i\beta}-e^{-i\beta} = 2i \sin \beta$, podemos arreglar el resultado recordando que $\omega = e^{\frac{2\pi i}{Q}}$:
+\begin{eqnarray*}
+{\bf b}(xy) &= &\frac{\omega^{xx_0+\frac{xrT}{2}}}{Q} \left(\frac{\omega^{\frac{xrT}{2}}-\omega^{-\frac{xrT}{2}}}{\omega^{xr}-1}\right) \\
+ &= &\frac{\omega^{xx_0+\frac{xrT}{2} - \frac{xr}{2}}}{Q} \left(\frac{\omega^{\frac{xrT}{2}}-\omega^{-\frac{xrT}{2}}}{\omega^{\frac{xr}{2}}-\omega^{\frac{-xr}{2}}}\right) \\
+ &= &\frac{\omega^{x(x_0+(T-1)\frac{r}{2})}}{Q} \left(\frac{\sin \left(\frac{T\pi xr}{Q}\right)}{\sin \left(\frac{\pi xr}{Q}\right)}\right).
+\end{eqnarray*}
+De donde, finalmente,
+\begin{eqnarray}
+|{\bf b}(xy)|^2 = \frac{1}{Q^2} \frac{\sin^2 \left(\frac{\pi Txr}{Q}\right)}{\sin^2 \left(\frac{\pi xr}{Q} \right)}. \label{2}
+\end{eqnarray}
+\begin{obs*} En el resultado obtenido, $|{\bf b}(xy)|^2$ solo depende de $x$, pero esto tiene relación con el hecho de que solo estamos considerando los $y$ en el rango de $f$. Además, notemos que $\frac{xr}{Q}$ no puede ser entero, por lo que el seno en el denominador está bien definido. En efecto, puesto que $0\leq xr < M^2 \leq Q$, la única opción sería tener $xr = 0$, lo que contradice que tengamos $\omega^{xr} \neq 1$.
+\end{obs*}
+
+\subsection{Probabilidad de encontrar un número bueno}
+
+\underline{Nota}: Usaremos $1.581$ porque en radianes es un poco mayor que $\frac{\pi}{2}$ para dejar margen. Similarmente, usaremos $0.63247$ pues su cuadrado es un poco mayor que $0.4$.\\
+
+\begin{lema}\label{lema2} Para todo $T>0$ y para todo ángulo $0<\alpha<\pi$ tal que $T\alpha \leq 1.581$, se tiene que:
+\begin{center}
+$\frac{\sin\left(T\alpha\right)}{\sin \left(\alpha \right)} > 0.63247T.$
+\end{center}
+\end{lema}
+\begin{proof}
+Dada la identidad $\sin(\alpha) \leq \alpha$, que se cumple para todo $\alpha>0$, se tiene que:
+\begin{center}
+$\frac{\sin \left(T\alpha\right)}{T\alpha} \leq \frac{\sin \left( T\alpha \right)}{T \sin\left( \alpha \right)}.$
+\end{center}
+Por lo tanto, basta probar que:
+\begin{center}
+$\frac{\sin \left(T\alpha\right)}{T\alpha} > 0.63247.$
+\end{center}
+Notemos ahora que la función $\frac{\sin (x)}{x}$ con $0<x\leq 1.581$ tiene por derivada a $\frac{x\cos(x)-\sin(x)}{x^2}$, cuyo signo depende exclusivamente del numerador.\\
+
+Para $\frac{\pi}{2} \leq x \leq 1.581$ la derivada es negativa porque $\cos(x)$ tiene valor negativo o nulo y $\sin(x)$ tiene valor positivo.\\
+
+Para $0<x< \frac{\pi}{2}$, la derivada también es negativa. Para ello, consideremos la función $t(x) = \tan(x)-x$ en ese tramo. Notemos que $t(0) =\tan(0)-0=0$ y que $\tan(x)>0$ en el intervalo pues $\sin(x)>0$ y $\cos(x)>0$. Ahora notemos que $t'(0) = \tan'(0) - 1 = \sec^2(0) -1 =1-1 =0$ y que $t''(x) = (\sec^2)'(x)= 2 \sec^2(x)\tan(x) > 0$ en ese tramo por lo anterior. Así, se tiene que el mínimo de $t$ en el intervalo $0\leq x < \frac{\pi}{2}$ es único (pues la última desigualdad es estricta) y se alcanza en $x=0$, donde $t(0)=0$. Por lo tanto, $t(x)>0$ en el intervalo $0<x< \frac{\pi}{2}$, que es equivalente a decir que $\tan(x)>x$ en dicha región. De esto último se deduce que $x \cos(x) - \sin(x) < 0$ en el intervalo.\\
+
+Todo lo anterior permite concluir que la función alcanza su mínimo en la cota $x=1.581$ donde
+\begin{center}
+$\frac{\sin \left(1.581\right)}{1.581} > \frac{0.9999479}{1.581} > 0.63247$,
+\end{center}
+con lo que se completa la demostración.
+\end{proof}
+
+\begin{lema}\label{lema3} Suponga que $M\geq 154$. Entonces, para todos los pares $xy$ tales que $x$ es un número bueno, la probabilidad de obtener $x$ en la medición está acotada inferiormente por $\frac{0.4}{r^2}$.
+\end{lema}
+\begin{proof}
+Recordemos primero que si $x$ es un número bueno, entonces existe un entero $t$ tal que $-\frac{r}{2} \leq tQ - xr \leq \frac{r}{2}$, $Q>Mr$, $T = 1 + \lfloor \frac{Q-x_0}{r}\rfloor$ con $x_0 < r$. Supongamos que $\omega^{xr} \neq 1$. Luego, usando que $|\sin(x)| = |\sin(-x)| = |\sin(x+n\pi)|$ con $n\in \mathbb{Z}$, y usando la ecuación (\ref{2}), tenemos que:
+\begin{eqnarray*}
+|b(xy)|^2 &= &\frac{1}{Q^2} \frac{\sin^2 \left(\frac{\pi Txr}{Q}\right)}{\sin^2 \left(\frac{\pi xr}{Q} \right)}\\
+&= &\frac{1}{Q^2} \frac{\sin^2 \left(\frac{\pi Txr}{Q} - \pi Tt \right)}{\sin^2 \left(\frac{\pi xr}{Q} - \pi t \right)}\\
+&= &\frac{1}{Q^2} \frac{\sin^2 \left(\pi T \left(\frac{xr}{Q}-t \right)\right) }{\sin^2 \left(\pi \left(\frac{xr}{Q}-t \right) \right) } \\
+ &= &\frac{1}{Q^2} \frac{\sin^2 \left( \pi T \left(\frac{tQ - xr}{Q}\right)\right)}{\sin^2 \left(\pi \left(\frac{tQ-xr}{Q} \right) \right) }. 
+\end{eqnarray*}
+\begin{obs*} Aquí nuevamente el seno en el denominador está bien definido, pues $\frac{tQ-xr}{Q}$ es entero solo cuando $xr = 0$, lo que contradice que $\omega^{xr} \neq 1$.
+\end{obs*}
+Pero como $x$ es número bueno, entonces tomando $\alpha = \pi \frac{tQ-xr}{Q} \leq \pi \frac{r}{2Q}$ y notando que $T \leq 1 + \frac{Q}{r}$, tenemos que: \\
+\[ T\alpha \leq \pi \frac{r}{2Q} (1+\frac{Q}{r}) = \frac{\pi}{2} + \frac{\pi r}{2Q}. \]
+Y como $Q>Mr$, ocurre que:
+\begin{center}
+$\frac{\pi r}{2Q} < \frac{\pi}{2M} < 1.581  - \frac{\pi}{2} \,$ para $M\geq 154$.
+\end{center}
+Así, $T\alpha \leq 1.581$, con lo que se cumple la hipótesis del lema \ref{lema2}, por lo que se tiene que:
+\[ \frac{\sin \left( \pi T \left(\frac{tQ - xr}{Q}\right)\right)}{\sin \left(\pi \left(\frac{tQ-xr}{Q} \right) \right) } > 0.63247T \]
+Notando ahora que $T \geq Q/r$ concluimos que:
+\[ |b(xy)|^2 > \frac{1}{Q^2} (0.63247T)^2 > 0.4 \frac{T^2}{Q^2} \geq \frac{0.4}{r^2}. \]
+Finalmente, falta el caso en que $\omega^{xr}=1$. En este caso, la demostración es trivial, pues se tiene que:
+\[ |b(xy)|^2 = \frac{T^2}{Q^2} > 0.4 \frac{T^2}{Q^2} \geq \frac{0.4}{r^2} \]
+Con lo que el lema queda demostrado.
+\end{proof}
+
+\begin{cor.}\label{cor1} La probabilidad de obtener un buen número en cada intento de la parte cuántica es $\Omega(\frac{1}{\log \log M})$.\footnote{Es de hecho al menos $0.746$ en $\log_2 \log_2 M$ \cite*{back}.}
+\end{cor.}
+\begin{proof}
+Por cada número bueno $x$, hay $r = | \{ f(0), ..., f(r-1) \} | $ diferentes $y$'s para los cuales $f^-1 (y)$ es un conjunto de cardinalidad $T$. Pero como hay $\Omega \left( \frac{r}{\log \log r} \right)$ números buenos, se tiene que hay $\Omega \left( \frac{r^2}{\log \log r} \right)$ pares $xy$ que cumplen con el lema $3$.\\
+
+Así, existe una constante $c$ tal que la probabilidad de obtener un número bueno es mayor a 
+\[ \frac{c r^2}{\log \log r} |b(xy)|^2 > \frac{0.4c}{\log \log r} > \frac{0.4c}{\log \log M}.\]
+\begin{nota} Para probar que la probabilidad es de al menos $\frac{0.746}{\log_2 \log_2 M}$, notemos que en realidad la constante es $c \approx e^{-\gamma} \approx 0.56145948356$. Utilizando la identidad $\log_a x = \frac{\log_b x}{\log_b a}$, obtenemos lo siguiente:
+\begin{eqnarray*}
+\log \log M & = & \log\left(\frac{\log_2 M}{\log_2 10}\right) \\
+			& = & \log \log_2 M - \log \log_2 10 \\
+			& = & \frac{\log_2 \log_2 M}{\log_2 10} - \log \log_2 10 \\
+			& \approx & 0.30103 \cdot \log_2 \log_2 M -0.52139 \\
+			& < & 0.30103 \cdot \log_2 \log_2 M
+\end{eqnarray*}
+Con esto obtenemos finalmente que para $M\geq 154$:
+\[ \frac{0.4c}{\log \log M} > \frac{0.4 c}{0.30103 \cdot \log_2 \log_2 M} \approx \frac{0.746}{\log_2 \log_2 M} \]
+\end{nota}
+\end{proof}
+
+\subsection{Utilización de un número bueno}
+
+\begin{lema}\label{lema4} Dado un número bueno $x$, se puede determinar $r$ en tiempo polinomial.
+\end{lema}
+\begin{proof}
+Que $x$ sea un número bueno quiere decir que existe un entero $t$ relativamente primo al período $r$ tal que $xr-tQ = k$ para algún $k$ que cumple $-\frac{r}{2}\leq k \leq \frac{r}{2}$. Al dividir la ecuación por $rQ$, y tomar valor absoluto, tenemos:
+\[ \left| \frac{x}{Q} - \frac{t}{r} \right| = \frac{\left| k \right|}{rQ} \leq \frac{1}{2Q}. \]
+Notemos primero que los $t$ y $r$ relativamente primos que satisfacen la desigualdad son únicos. En efecto, supongamos que tenemos otro par $t'$ y $r'$ que cumplen lo pedido, con $r'<M$. Por un lado tenemos que:
+\begin{eqnarray*}
+\left| \frac{t}{r} - \frac{t'}{r'} \right|  = 0 &\leftrightarrow &\frac{t}{r} = \frac{t'}{r'}
+\end{eqnarray*}
+Pero $\mcd(t,r) = \mcd(t',r')=1$, de modo que las fracciones son ambas irreductibles, por lo que $t=t'$ y $r=r'$, que es una contradicción. Por lo tanto tenemos que:
+\[ \left| \frac{t}{r} - \frac{t'}{r'} \right| = \left| \frac{tr' - t'r}{rr'} \right| \geq \frac{1}{rr'} > \frac{1}{M^2} \]
+Pero por otro lado tenemos que:
+\[ \left| \frac{t}{r}-\frac{t'}{r'} \right| \leq \left| \frac{x}{Q} - \frac{t}{r} \right| + \left| \frac{x}{Q} - \frac{t'}{r'} \right| \leq \frac{1}{2Q} + \frac{1}{2Q} = \frac{1}{Q} \]
+Tendríamos entonces que $Q < M^2$, lo que también es una contradicción. La unicidad sobre los $t$ y $r$ relativamente primos que satisfacen la desigualdad nos permite determinarlos utilizando un algoritmo basado en el uso de fracciones continuas, que converge en tiempo polinomial y que veremos en la próxima sección.
+\end{proof}
+
+
+
+\section{Uso de las fracciones continuas}
+
+Vamos a construir un método para obtener $r$ a partir de $x$. Sea $\alpha = \frac{x}{Q}$. Suponemos que corremos el algoritmo de fracción continua para $\alpha$ hasta que $|\alpha - \frac{p_k}{q_k}|\leq \frac{1}{2Q}$. Vale decir,
+\[ \left| \alpha - \frac{p_k}{q_k} \right| \leq \frac{1}{2Q} \]
+\begin{center}
+y
+\end{center}
+\[ \left| \alpha - \frac{p_i}{q_i} \right| > \frac{1}{2Q} \text{ para } 0\leq i \leq k-1 \]
+Demostraremos que $q_k = r$. \\
+
+Supongamos primero que $q_k < r$. Sabemos que:
+\[ \left| \frac{t}{r} - \frac{p_k}{q_k} \right| \leq \left| \alpha - \frac{t}{r} \right| + \left| \alpha - \frac{p_k}{q_k} \right|  \leq \frac{1}{Q} \]
+Sigue que $\left| tq_k - p_kr \right| \leq \frac{q_kr}{Q} < \frac{r^2}{Q} \leq \frac{M^2}{Q} \leq 1$, de donde $p_kr = tq_k$ y en consecuencia $\frac{p_k}{q_k} = \frac{t}{r}$. Como ambas fracciones son irreductibles (pues $\mcd(t,r)=1$ y por las propiedades de las fracciones continuas reducidas), se tiene que $p_k = t$ y $q_k = r$, lo que es contradicción con la hipótesis.\\
+
+El segundo caso que tenemos es suponer que $q_k>r$. Para esta parte, haremos mención al teorema $184$ de Hardy y Wright \cite{numbertheory}. %CITA PENDIENTE
+
+\begin{teo.}\label{teo2} Sea $\alpha\in \mathbb{R}, \alpha \geq 0$, y sean $p,q\in\mathbb{N}$ tales que $\left| \alpha-\frac{p}{q} \right| \leq \frac{1}{2q^2}$. Sea $\{ \frac{p_k}{q_k} \}$ la sucesión de fracciones continuas para $\alpha$. Entonces existe un natural $n$ tal que $\frac{p}{q} = \frac{p_n}{q_n}$.
+\end{teo.}
+
+Podemos ahora aplicar esto para $\alpha = \frac{x}{Q}$, $p=t$ y $q = r$. En efecto, como $r^2 \leq M^2 \leq Q$ y por ser $x$ un número bueno, se tiene que:
+\[ \left| \frac{x}{Q} - \frac{t}{r} \right| \leq \frac{1}{2Q} \leq \frac{1}{2r^2} \]
+Concluimos que $\frac{t}{r} = \frac{p_l}{q_l}$ para algún $l\in \mathbb{N}$, con lo que se deduce que $r = q_l$, ya que ambas fracciones son irreductibles. Pero si $q_k > r$ como habíamos supuesto, entonces $k>l$, puesto que la sucesión $\{q_i\}_{i\in \mathbb{N}}$ es no decreciente por definición. Luego, tendríamos que:
+\[ \left| \alpha - \frac{p_l}{q_l} \right| = \left| \alpha - \frac{t}{r} \right| \leq \frac{1}{2Q}\]
+Lo que es una contradicción, puesto que $l<k$ y habíamos supuesto que $\left| \alpha - \frac{p_i}{q_i} \right| > \frac{1}{2Q}$ para $0\leq i \leq k-1$. Con esto se completa la demostración para el cálculo de $r$.
+
+\section{Factorización de enteros}
+
+La incógnita ahora está en cómo utilizar el algoritmo de Shor para poder encontrar la descomposición de un número $M$. La idea de este capítulo es factorizar un número de la forma $M=p\cdot q$ donde $p$ y $q$ son primos impares distintos. El caso general es similar. La función que utilizaremos es $f_a (x) = a^x \mod M$ que cumple ciertas propiedades que nos interesan:
+\begin{itemize}
+\item Es periódica. Notemos que un entero $s$ es período de $f_a$ si y solo si $f_a(x+s) = f_a(x)$. Pero $f_a(x+s) = f_a(x)$ si y solo si $a^{x+s} \equiv a^x \mod M$, lo que es cierto si y solo si $a^s \equiv 1 \mod M$. En particular, $r' = \phi(M) = (p-1)(q-1)$ es un período (aunque no necesariamente el menor). En efecto, dado que $M$ es el producto de los primos distintos $p$ y $q$, se deduce del teorema de Euler que $a^{(p-1)(q-1)} \equiv 1 \mod M$. Cabe destacar que además $a^{p-1} \equiv 1 \mod p$ y $a^{q-1} \equiv 1 \mod q$.
+\item Existe un período mínimo $r$ para la función $f_a$. Además, $r$ divide a $r'$. En efecto, sea $r$ el menor período y notemos primero que los valores $f(0), ..., f(r-1)$ son todos distintos. Para demostrar esto último, supongamos por contradicción que se tienen $x$ e $y$, con $0\leq x < y \leq r-1$, tales que:
+\[ f_a(x)= f_a(y)\]\\
+Por definición, significa que:
+\begin{center}
+$\begin{array}{r r c l}
+& a^x \mod M &= & a^y \mod M \\
+\Leftrightarrow & a^x &\equiv &a^y \mod M \\
+\Leftrightarrow & a^{y-x} &\equiv &1 \mod M \\
+\end{array}$
+\end{center}
+Pero luego se tendría que $0<y-x<r$ donde $y-x$ también es un período, lo que contradice la minimalidad de $r$. Notar que es este período mínimo el que nos retorna el algoritmo de Shor, que no necesariamente es igual a $r'$. Ahora supongamos que $r$ no divide a $r'$. Dado que $r \neq r'$ y que $r$ es el menor período, se tendría entonces que $0 < r' \mod r < r$ y además:
+\[ a^{r'\mod r} = a^{r' - kr} =  a^r \cdot (a^{r})^{-k} \]
+Para algún $k\geq 1$. Finalmente, $a^r \cdot (a^{r})^{-k} \equiv 1\cdot 1^{k} \equiv 1 \mod M$, por lo que $r'\mod r$ es un período menor que $r$. Como habíamos supuesto que $r$ era el menor período, llegamos a una contradicción, con lo que concluimos que $r$ divide a $r'$.
+\end{itemize}
+Formalicemos entonces la obtención de los divisores de $M$ a partir del algoritmo de Shor. Sea $a \in \{2, ..., M-1 \}$ pseudo-aleatoriamente escogido y sea $r$ el menor período de la función $f_a:\mathbb{N} \rightarrow \mathbb{N}$ dada por $f_a(x) = a^x \mod M$. Para obtener un divisor de $M$, necesitamos primero demostrar dos lemas.
+
+\begin{lema}\label{probmedio} Si $r$ es par y $a^{\frac{r}{2}} \not \equiv -1 \mod M$, entonces $d = \mcd(a^\frac{r}{2} - 1, M)$ es un divisor de $M$.
+\end{lema}
+\begin{proof}
+Dado que $r$ es período de $f$, tenemos que $a^r \equiv 1 \mod M$, por lo que $a^r - 1 \equiv 0 \mod M$. Además, como $r$ es par, se tiene que:
+\[ \left(a^{\frac{r}{2}}-1\right) \left(a^{\frac{r}{2}} + 1 \right) = a^r-1 \]
+Tenemos entonces que $M \divides \left(a^{\frac{r}{2}}-1\right) \left(a^{\frac{r}{2}} + 1 \right)$. Sea $d = \mcd(a^\frac{r}{2} - 1, M)$. Dado que $d\divides M$, basta probar que $d \neq M$ y $d \neq 1$. Supongamos primero que $d = M$. Entonces:
+\begin{eqnarray*}
+M \divides \left(a^{\frac{r}{2}}-1\right) & \Rightarrow & a^{\frac{r}{2}} \equiv 1 \mod M
+\end{eqnarray*}
+Lo que contradice que $r$ sea el menor período. Supongamos entonces que $d=1$. Entonces, la identidad de Bézout dice que existen enteros $s$ y $t$ tales que:
+\begin{eqnarray*}
+(a^{\frac{r}{2}} - 1)s + Mt & = & 1 \qquad / \, \cdot (a^{\frac{r}{2}}+1)\\
+(a^{\frac{r}{2}}-1)(a^{\frac{r}{2}} + 1)s + (a^{\frac{r}{2}}+1)Mt & = & (a^{\frac{r}{2}}+1)
+\end{eqnarray*}
+Dado que $M \divides (a^{\frac{r}{2}}-1)(a^{\frac{r}{2}}+1)$, $M$ divide a todo el lado izquierdo de la ecuación, por lo tanto, también al derecho, es decir, $M \divides (a^{\frac{r}{2}}+1)$. Obtenemos que $a^{\frac{r}{2}} + 1 \equiv 0 \mod M$, o equivalentemente:
+\[ a^{\frac{r}{2}} \equiv - 1 \mod M \]
+Lo que contradice nuestra segunda hipótesis. Se tiene entonces que $d$ es un factor de $M$.
+\end{proof}
+\begin{lema}\label{lemafinal}
+Con probabilidad al menos $\frac{1}{2}$ se satisface simultáneamente que $r$ es par y $a^{\frac{r}{2}} \not \equiv -1 \mod M$.
+\end{lema}
+\begin{proof}
+Notemos que para todo período $s$ de $f_a$, se tiene que $a^s \equiv 1 \mod M$ y por lo tanto $a^s = 1 + kpq$ para algún entero $k$. Luego, también es cierto que:
+\begin{eqnarray*}
+a^s & \equiv & 1 \mod p \\
+a^s & \equiv & 1 \mod q
+\end{eqnarray*}
+Vale decir, todo período de $f_a$ también lo es de $g:\mathbb{Z} \rightarrow \mathbb{N}$ y $h:\mathbb{Z} \rightarrow \mathbb{N}$ definidas por $g(x) = a^x \mod p$ y $h(x) = a^x \mod q$. Por otra parte, sean $r_p$ y $r_q$ los menores períodos de $g$ y $h$ respectivamente, y sea $r_1$  un múltiplo de $r_p$ y $r_q$, vale decir, $r_1 = \alpha_p r_p = \alpha_q r_q$ para algunos enteros $\alpha_p$ y $\alpha_q$. Notemos que:
+\begin{eqnarray*}
+a^{r_p} \equiv 1 \mod p & \Rightarrow & a^{r_1} \equiv (a^{r_p})^{\alpha_p} \equiv 1 \mod p \\
+a^{r_q} \equiv 1 \mod q & \Rightarrow & a^{r_1} \equiv (a^{r_q})^{\alpha_q} \equiv 1 \mod q
+\end{eqnarray*}
+Luego, se tiene que $a^{r_1} = 1 + m_p p = 1 + m_q q$ para ciertos enteros $m_p$ y $m_q$. Igualando $mp = nq$, obtenemos que $m = kp$ para algún entero $k$, pues $p$ y $q$ no tienen factores en común. Así:
+\begin{eqnarray*}
+a^{r_1} & = & 1 + kpq \\
+a^{r_1} & \equiv & 1 \mod M
+\end{eqnarray*}
+De donde $r_1$ también es período de $f_a$. Por otra parte, igual que para el caso de $f_a$, cualquier período de $g$ será múltiplo de $r_p$ y cualquier período de $h$ será múltiplo de $r_q$. Dado que todo período de $f_a$ es período de $g$ y de $h$, todo período de $f_a$ es múltiplo de $r_p$ y de $r_q$. El resultado anterior nos dice que lo inverso también es cierto: todo múltiplo de $r_p$ y $r_q$ es período de $f_a$.\\
+
+En otras palabras, un número $s$ es período de $f_a$ si y solo si es múltiplo de $r_p$ y $r_q$. Dado que $r$ es el menor período, se tiene que $r = \text{MCM}(r_p, r_q)$. Notemos que $r$ es impar si y solo si $r_p$ y $r_q$ son ambos impares.\\
+
+Veamos ahora el otro caso interesante, como veremos algo más adelante. Supongamos que $r_p$ y $r_q$ son ambos múltiplos de distintas potencias de $2$. Sin pérdida de la generalidad, supongamos que $r_p$ es divisible por una potencia mayor de $2$, vale decir, existen dos impares $\beta_q$ y $\beta_p$ y dos naturales $e$ y $f$, con $f\geq 1$, tales que $r_q = 2^e \beta_q$ y $r_p = 2^{e+f} \beta_p$. Como $r = \text{MCM}(r_p, r_q)$, es directo que:
+\[ r = 2^{e+f} \cdot \text{MCM}(\beta_q, \beta_p) = 2^{e+f} \]
+Luego, tomando $\text{MCM}(\beta_q, \beta_p) = l\cdot \beta_q$, se tiene que:
+\begin{eqnarray*}
+\frac{r}{2} & = & 2^{e+f-1} \cdot l \cdot \beta_q \\
+			& = & 2^e \cdot \beta_q \cdot (2^{f-1} \cdot l) \\
+			& = & r_q \cdot (2^{f-1} \cdot l)
+\end{eqnarray*}
+Como $\frac{r}{2}$ es múltiplo de $r_q$, se tiene que $\frac{r}{2}$ es período de $g$, por lo que:
+\begin{eqnarray*}
+a^{\frac{r}{2}} &\equiv & 1 \mod q \\
+\Rightarrow a^{\frac{r}{2}} & \equiv & 1 \mod M \\
+\Rightarrow a^{\frac{r}{2}} & \not \equiv & -1 \mod M
+\end{eqnarray*}
+Tenemos entonces hasta ahora que si $r_p$ y $r_q$ no son ambos impares y si $r_p$ y $r_q$ no son ambos múltiplos de $r_q$, tenemos lo que buscamos. Basta entonces probar que la probabilidad de que $r_p$ y $r_q$ sean múltiplos impares de la misma potencia de $2$ es menor o igual a $\frac{1}{2}$ para probar el lema.\\
+
+Dado que $\mathbb{Z}_p^*$ es un grupo cíclico con $p$ primo, existe un generador del grupo $b$, tal que $\langle b \rangle = \mathbb{Z}_p^*$. Sea $p-1 = 2^{k_p} \cdot \beta$, para $\beta$ impar. Sea $l_p\in \{1,...,p-1\}$ y sea $r_0$ el orden de $b^{l_p}$, es decir, sea $r_0$ el menor período de la función $f_{p}:\mathbb{Z} \rightarrow \mathbb{N}$ dada por $f_{b^{p}}(x) = (b^{l_p})^x \mod p-1$. Consideremos dos casos:
+\begin{itemize}
+\item Si $l$ es impar:
+\[ 1 \equiv (b^{l_p})^{r_0} \equiv b^{{l_p}r_0} \mod p \]
+Luego $r_p = p-1$ divide a ${l_p}r_0$. Como $l$ es impar, se tiene que $r_0$ tiene como factor al menos la misma potencia de $2$ que $p-1$, por lo que $r_0$ es un múltiplo impar de $2^{k_p}$. 
+\item Si $l$ es par:
+\[ (b^{l_p})^{\frac{p-1}{2}} \equiv (b^{p-1})^{\frac{l_p}{2}} \equiv 1 \mod p \]
+Luego, $r_0$ divide a $\frac{p-1}{2}$, con lo que $r_0$ tiene una potencia de $2$ estrictamente menor que la de $p-1$. Por lo tanto, $r_0$ no es múltiplo impar de $2^{k_p}$.
+\end{itemize}
+El mismo razonamiento puede hacerse sobre $q$ para algún entero $k_q$, $l_q\in \{1,...,q-1\}$ y $b_q$ generador de $\mathbb{Z}_q^*$. Notemos ahora que los grupos $(\mathbb{Z}_M^*, \cdot)$ y $(\mathbb{Z}_p^* \times \mathbb{Z}_q^*)$ son isomorfos. En efecto, dado que se cumple que:
+\begin{eqnarray*}
+a^r \equiv 1 \mod M \Leftrightarrow a^r \equiv 1 \mod p \land a^r \equiv 1 \mod q
+\end{eqnarray*}
+La biyección $f^*:\mathbb{Z}_M^* \rightarrow \mathbb{Z}_p^*\times \mathbb{Z}_q^*$ dada por $f^*(x) = (x \mod p, x\mod q)$ es un homorfismo entre $(\mathbb{Z}_M^*, \cdot)$ y $(\mathbb{Z}_p^* \times \mathbb{Z}_q^*)$. En efecto:
+\begin{itemize}
+\item Inyectividad: Sean $x,y\in \mathbb{Z}_M^*$.
+\begin{eqnarray*}
+f^*(x) = f^*(y) & \Rightarrow & x \mod p = y \mod p \land x \mod q = y \mod q \\
+			& \Rightarrow & x-y \equiv 0 \mod p \land x-y \equiv 0 \mod q \\
+			& \Rightarrow & x-y = np = mq \text{ para ciertos }p,q\in \mathbb{Z} \\
+			& \Rightarrow & x-y = kpq \text{ para cierto } k\in \mathbb{Z} \\
+			& \Rightarrow & x-y \equiv 0 \mod M \\
+			& \Rightarrow & x \equiv y \mod M \\
+			& \Rightarrow & x = y
+\end{eqnarray*}
+\item Sobreyectividad: Sea $c\in \mathbb{Z}_p^*$ y $d\in \mathbb{Z}_q^*$. Notemos que por el teorema chino del resto, el sistema dado por:
+\begin{eqnarray*}
+x \equiv c \mod p \\
+x \equiv d \mod q
+\end{eqnarray*}
+Tiene solución única en $\mathbb{Z}_M^*$, pues $\mcd(p,q)=1$. Por lo tanto, $f^*$ es sobre.
+\end{itemize}
+Finalmente, notemos que:
+\begin{eqnarray*}
+f^*(x\cdot y) & = & ((x\cdot y) \mod p, (x\cdot y) \mod q) \\
+			  & = & (x \mod p, x \mod q) \cdot (y \mod p, y \mod q) \\
+			  & = & f^*(x) \cdot f^*(y)
+\end{eqnarray*}
+Por lo tanto, $f$ es un isomorfismo entre dichos grupos. Esto nos permite afirmar que existe una correspondencia uno a uno entre escoger un $a\in \mathbb{Z}_M^*$ al azar y escoger dos números $a_1 \in \mathbb{Z}_p^*$ y $a_2 \in \mathbb{Z}_q^*$ independientemente al azar. Pero dado que habíamos mencionado que habían generadores $b_p$ y $b_q$ de los grupos respectivos, se tiene que también este procedimiento es equivalente a escoger aleatoriamente $l_p \in \{1,...,p-1\}$ y $l_q \in \{ 1,...,q-1 \} $.\\
+
+Finalmente, notemos que las probabilidades de paridad de $l_p$ y $l_q$ se comportan de manera independiente, con probabilidad exactamente $\frac{1}{2}$. Queremos la probabilidad de que $k_p = k_l$. Todo se reduce a revisar estos últimos cuatro casos:
+\begin{itemize}
+\item Supongamos que eso ocurre con $l_p$ impar y $l_q$ impar. Entonces con $l_p$ par y $l_q$ impar, o con $l_p$ impar y $l_q$ par no ocurrirá, por lo que la probabilidad en este caso es menor o igual a $\frac{1}{2}$.
+\item Supongamos que eso ocurre con $l_p$ par y $l_q$ par. Entonces nuevamente con $l_p$ par y $l_q$ impar, o con $l_p$ impar y $l_q$ par no ocurrirá, por lo que la probabilidad en este caso también es menor o igual a $\frac{1}{2}$.
+\item Supongamos que eso ocurre con $l_p$ impar y $l_q$ par. Entonces con $l_p$ par y $l_q$ par, o con $l_p$ impar y $l_q$ impar no ocurrirá, por lo que la probabilidad en este caso también es menor o igual a $\frac{1}{2}$.
+\item Supongamos que eso ocurre con $l_p$ par y $l_q$ impar. Análogamente, con $l_p$ par y $l_q$ par, o con $l_p$ impar y $l_q$ impar no ocurrirá, por lo que la probabilidad en este caso también es menor o igual a $\frac{1}{2}$.
+\end{itemize}
+Esto completa la demostración.
+\end{proof}
+Los resultados anteriores nos permiten demostrar el siguiente teorema.
+\begin{teo.}\label{teoshor} Dado un entero $M$, el algoritmo de Shor encuentra un factor de $M$ con probabilidad de error acotada en tiempo polinomial en un computador cuántico.
+\end{teo.}
+
+
+
+\printbibliography
+
+\newpage
+\appendix
+
+\section{Paréntesis: Fracciones Continuas}
+
+\subsection{Fracciones continuas}
+\begin{def.}\label{fraccont} Una fracción continua es una expresión de la forma:
+\begin{center}
+\begin{large}
+$x = a_0 + \frac{1}{a_1 + \frac{1}{a_2 +\frac{1}{a_3 + ...}}}$
+\end{large}
+\end{center}
+Donde $a_0 \in \mathbb{Z}$ y $a_i \in \mathbb{N}\setminus \{ 0 \}$ para $i\geq 1$. Denotaremos a esta fracción como $x=[a_0; a_1, a_2, a_3, ...]$. Esta notación tiene la particularidad de ser única para cada $x\in \mathbb{R} \setminus \mathbb{Q}$, mientras que cada $x\in \mathbb{Q}$ se puede escribir de exactamente dos maneras:
+\[ x=[a_0; a_1, ..., a_n,1] = [a_0; a_1, ..., a_n + 1] \]
+El estudio de las fracciones continuas ha permitido demostrar que la secuencia es finita si y solo si $x$ es racional.
+\end{def.}
+\begin{def.}\label{dedfc} Dada una fracción continua $x=[a_0; a_1, a_2, ...]$, definimos la \textbf{sucesión de fracciones continuas reducidas}, $\{\frac{p_k}{q_k}\}$, como:
+$$\left\{
+\begin{array}{l}
+ p_0 = a_0 \\
+ q_0 = 1
+\end{array}
+\right.
+\qquad \left\{
+\begin{array}{l}
+ p_1 = a_0 a_1 + 1 \\
+ q_1 = a_1
+\end{array}
+\right.\qquad
+\text{Y para } k\geq 2: \qquad\left\{
+\begin{array}{l}
+ p_k = a_k p_{k-1} + p_{k-2} \\
+ q_k = a_k q_{k-1} + q_{k-2}
+\end{array}
+\right.
+$$
+\end{def.}
+Algunas propiedades importantes son que $\frac{p_k}{q_k} = [a_0; a_1,..., a_k]$ y que para todo $k$, la fracción $\frac{p_k}{q_k}$ es irreductible. El siguiente teorema que no demostraremos será de utilidad.\\
+
+\begin{teo.}\label{teo1} Dado un $x$ en los reales, la fracción $\frac{p_k}{q_k}$ puede ser generada en un tiempo a lo más polinomial en $k$ de operaciones aritméticas básicas. Además, la distancia de $x$ a la fracción decae exponencialmente y es la mejor aproximación posible en el siguiente sentido: \\
+
+Para toda fracción $\frac{p}{q} \neq \frac{p_k}{q_k}$ tal que $0<q \leq q_k$ se tiene que $\left| x - \frac{p_k}{q_k} \right| < \left| x - \frac{p}{q} \right|$.
+\end{teo.}
+\begin{cor.}\label{corteo1} Si $\left| x-\frac{p}{q} \right| \leq \left| x-\frac{p_k}{q_k} \right|$ entonces $q \geq q_k$.
+\end{cor.}
+
+\subsection{Algoritmo de fracción continua}
+
+Dado $\alpha \in \mathbb{R}$, generamos la sucesión de números $a_0, a_1, a_2, ...$ tal que $\alpha = [a_0; a_1, a_2, ...]$. La forma de generar esta sucesión en tiempo polinomial es con el algoritmo de fracción continua, que describiremos a continuación. \\
+
+\begin{enumerate}
+\item Sea $\alpha\in \mathbb{R}$ y escribimos $\alpha=a_0 + t_0$ con $a_0 = \lfloor \alpha \rfloor$ y $t_0 = \alpha - a_0$, de manera que $a_0 \in \mathbb{Z}$ y $0\leq t_0 <1$.
+\item Mientras mientras $t_i \neq 0$, calculamos:
+\[ \begin{array}{l c l}
+a_{i+1} &= & \lfloor {\frac{1}{t_i}} \rfloor
+\end{array}\]
+\[ \begin{array}{l c l}
+t_{i+1} &= &\frac{1}{t_i} - a_{i+1}
+\end{array}\]
+De manera que
+\begin{center}
+$\frac{1}{t_i} = a_{i+1} + t_{i+1}$ con $a_{i+1} \in \mathbb{N}$ y $0\leq t_{i+1} <1$
+\end{center}
+\item Obtenemos $\alpha=[a_0; a_1, a_2, ...]$
+\end{enumerate}
+Notar que si cambiamos la condición limitando el número de pasos, el algoritmo terminará en un $k$ arbitrario que queramos y, en particular, podemos calcular la mejor aproximación a un número real de acuerdo al criterio expuesto en el teorema \ref{teo1}.\\
+
+Por último, notemos que el cálculo de la fracción continua para un racional $\frac{a}{b}$ se puede hacer en tiempo polinomial en la cantidad de bits de la codificación binaria de $a$ y $b$, ya que si $a>b>0$, entonces podemos calcular la identidad $\frac{a}{b} = \lfloor \frac{a}{b} \rfloor + \frac{a\mod b}{b}$ utilizada en el algoritmo rápidamente, ya que $a \mod b < \frac{a}{2}$.
+
+\section{Paréntesis: Teoría de grupos}
+
+Para el algoritmo de factorización, algunas demostraciones requerirán de conocimientos en teoría de grupos. Todo el conocimiento necesario se encontrará en esta sección.\\
+
+\begin{def.}\label{def2} Un \textbf{grupo} es un par $(G, \circ)$ donde $\circ : G\times G \rightarrow G$ es una función que cumple:
+\begin{enumerate}
+\item Asociatividad: $\forall a,b,c \in G: \quad a\circ(c\circ d) = (a\circ b) \circ c$
+\item Elemento neutro bajo $\circ$: $\exists e\in G: \quad a\circ e = e \circ a = a$
+\item Existencia de inversos: $\forall a\in G \, \exists b \in G: \quad a\circ b = b\circ a = e$
+\end{enumerate}
+\end{def.}
+
+\begin{obs*} El inverso es único. En efecto, si $b$ y $c$ son inversos de $a$, se tiene $a\circ c = a\circ b$. Multiplicando por la izquierda a ambos lados por $b$ y por definición de inverso se obtiene $b=c$. Por lo mismo, denotamos en general por $a^{-1}$ al inverso de $a$.
+\end{obs*}
+\begin{ej}
+$ \text{ }$
+\begin{itemize}
+\item Los pares $(\mathbb{Z}, +)$, $(\mathbb{Z}_n, +)$ y $(\mathbb{Z} _n^*, \cdot)$ con $\mathbb{Z}_n = \{0, ..., n-1\}$ y $\mathbb{Z}_n^*=\{ a \in \mathbb{Z}_n \, | \, \mcd(a,n)=1\}$, son grupos.
+\item El par $(X, \circ)$ donde $X = \{ f: \{0,...,n-1\} \rightarrow \{0,...,n-1\} \, | \, f \text{ es } 1-1 \text{ y sobre}\}$ y $\circ: X\times X \rightarrow X$ es la composición de funciones es un grupo cuya operación no es conmutativa.
+\end{itemize}
+\end{ej}
+
+\begin{def.}\label{def3} Dados dos números enteros $a$ y $b$, denotamos $a|b$ si $a$ divide a $b$, es decir, si existe $k\in \mathbb{N}$ tal que $b = k\cdot a$.
+\end{def.}
+
+\begin{def.}\label{def4} Sea $(G, \circ)$ un grupo. Decimos que un par $(H, \hat{\circ})$ es un \textbf{subgrupo} de $(G, \circ)$ si $H\subseteq G$, $\hat{\circ}: H\times H \rightarrow H$ es la restricción de $\circ$ a $H$ y $(H, \hat{\circ})$ es un grupo. (Nota: Por simplicidad, escribimos $(H, \circ)$ en lugar de $(H, \hat{\circ})$.)
+\end{def.}
+
+\begin{teo.}\label{teo3} Sea $(G, \circ)$ un grupo. Si $G$ es finito y $(H, \circ)$ es subgrupo de $(G, \circ)$, entonces $|H| \, | \, |G|$.
+\end{teo.}
+\begin{proof}
+Definimos en primer lugar la relación $\sim$ como: para todo $a,b\in G$, $a\sim b$ si y solo si existe $h \in H$ tal que $a = b\circ h$.\\
+
+Afirmamos que $\sim$ es una relación de equivalencia. Para demostrar esto, hay que demostrar tres cosas:
+\begin{itemize}
+\item Reflexividad: $\forall a\in G$ se tiene $a = a\circ e$, con $e\in H$, por lo tanto, $a\sim b$.
+\item Simetría: $\forall a,b \in G$ se tiene que $a\sim b$ implica que existe $h\in H$ tal que $a = b\circ h$. Multiplicando por la derecha por el inverso de $h$, se tiene $a \circ h^{-1} = (b \circ h) \circ h^{-1} = b \circ (h \circ h^{-1}) = b \circ e = b$, con $h^{-1}\in H$. Por lo tanto, $b\sim a$.
+\item Transitividad: $\forall a,b,c \in G$ se tiene que $a\sim b$ y $b\sim c$ implica que existen $h, k \in H$ tales que $a = b\circ h$ y $b = c \circ k$. Reemplazando la segunda ecuación en la primera, se tiene $a = (c \circ k) \circ h = c \circ (h\circ k)$, con $h\circ k \in H$ (por definición de $\circ$). Por lo tanto $a \sim c$.
+\end{itemize}
+Con lo que se tiene que $\sim$ es una relación de equivalencia (y por lo tanto genera una partición de $G$).\\
+\begin{not.}
+Denotamos $aH = \{ b \in G \, | \, \exists h\in H : \, b=a\circ h\}$.
+\end{not.}
+Demostraremos ahora que $\left[ a \right] _{\sim} = aH$ para toda $a\in G$.\\
+
+$(\subseteq)$ Sea $b\in \left[ a \right] _{\sim}$
+\begin{center}
+$\begin{array}{r l}
+\Rightarrow &b\sim a \\
+\Rightarrow & \exists h\in H \text{ tal que } b=a\circ h\\
+\Rightarrow & b \in aH
+\end{array}$
+\end{center}
+
+$(\supseteq)$ Sea $b\in aH$
+\begin{center}
+$\begin{array}{r l}
+\Rightarrow &\exists h\in H \text{ tal que } b = a\circ h \\
+\Rightarrow &b\sim a \\
+\Rightarrow &b \in \left[ a \right] _{\sim}
+\end{array}$
+\end{center}
+
+Así, $\left[ a \right] _{\sim} = aH$ para toda $a\in G$. Notemos ahora que $\left[ e \right] _{\sim} = H$. Demostraremos lo siguiente: Para todo $a, b \in G$ se tiene $|\left[ a \right] _{\sim}| = |\left[ b \right] _{\sim}|$. Si es el caso, la demostración está lista, pues como $\sim$ particiona $G$, que es un conjunto finito, en $k$ conjuntos de tamaño $|\left[ a \right] _{\sim}|$ para algún $k$ natural, se tiene $|G| = k |\left[ a \right] _{\sim}|$. Luego como $H = \left[ e \right] _{\sim}$, se tiene que $|G| = k |H|$, para aquel natural $k$, lo que demuestra el teorema.\\
+
+Para demostrar que para todo $a,b\in H$ se tiene que $\left| [a]_{\sim} \right| = \left| [b]_{\sim} \right|$, definamos la función $f:\left[ a \right] _{\sim} \rightarrow \left[ b \right] _{\sim}$ como:\\
+
+$f(x) = b \circ (a^{-1} \circ x)$\\
+
+Se tiene que:
+\begin{itemize}
+\item $f$ está correctamente definida:\\
+\subitem $\begin{array}{r c l}
+x\in \left[ a \right] _{\sim} &\Rightarrow & x = a\circ h \text{ para algún } h\in H\\
+&\Rightarrow & f(x) = b \circ (a^{-1} \circ (a\circ h))\\
+&\Rightarrow & f(x) = b \circ ((a^{-1} \circ a)\circ h))\\
+&\Rightarrow & f(x) = b \circ (e\circ h)\\
+&\Rightarrow & f(x) = b \circ h\\
+&\Rightarrow & f(x) \in bH \\
+&\Rightarrow & f(x) \in \left[ b \right] _{\sim}\\
+\end{array}$
+\item $f$ es $1-1$: \\
+\subitem $\begin{array}{r c l}
+f(x) = f(y) & \Rightarrow & b\circ (a^{-1} \circ x) = b\circ (a^{-1} \circ y) \qquad /\, b^{-1}\circ \\
+& \Rightarrow & b^{-1}\circ(b\circ (a^{-1} \circ x)) = b^{-1}\circ (b\circ (a^{-1} \circ y) \\
+& \Rightarrow & (b^{-1}\circ b)\circ (a^{-1} \circ x) = (b^{-1}\circ b)\circ (a^{-1} \circ y) \\
+& \Rightarrow & e\circ (a^{-1} \circ x) = e \circ (a^{-1} \circ y)  \\
+& \Rightarrow & a^{-1} \circ x = a^{-1} \circ y  \qquad /\, a \, \circ\\
+& \Rightarrow & a\circ (a^{-1} \circ x) = a\circ (a^{-1} \circ y) \\
+& \Rightarrow & (a\circ a^{-1}) \circ x = (a\circ a^{-1}) \circ y \\
+& \Rightarrow & e \circ x = e \circ y \\
+& \Rightarrow & x = y
+\end{array}$
+\item $f$ es sobre: En efecto, notemos que si $y \in \left[ b \right] _{\sim}$, sabemos que $y = b\circ h$ para algún $h\in H$. Tomamos $x = a \circ b^{-1} \circ y$. Como $y = b \circ h$, tenemos que $x = a\circ b^{-1} \circ b \circ h = a \circ h$. Por lo tanto, $x\in \left[ a \right] _{\sim}$. Luego, se tiene que:
+\subitem \begin{eqnarray*}
+f(x)&= 	&b \circ (a^{-1} \circ x)\\
+	&=	&b \circ (a^{-1} \circ a \circ b^{-1} \circ y)\\
+	&=	&b \circ e \circ b^{-1} \circ y\\
+	&=	&e \circ y\\
+	&=	&y \\
+\end{eqnarray*}
+\end{itemize}
+Luego $|\left[ b \right] _{\sim}| = |\left[ a \right] _{\sim}|$, pues $f$ es biyectiva, con lo que se demuestra el teorema.
+\end{proof}
+\begin{def.}\label{def5} Sea $(G, \circ)$ un grupo y $a \in G$. Definimos $a^0 = e$ y $a^k =  \underbrace{a \circ ... \circ a}_{k-\mbox{veces}}$ para todo $k\in \mathbb{N}$ con $k\geq 1$. Extendemos la definición a $\mathbb{Z}$ haciendo $a^{-k} = (a^{-1})^k$ para cada $k\in \mathbb{N}$.\\
+\end{def.}
+\begin{def.}\label{def6} Sea $(G, \circ)$ un grupo y $a\in G$. Definimos el \textbf{conjunto generado} por $a$, denotado por $\langle a \rangle$ como:
+\begin{center}
+$\langle a \rangle = \{ a^k \, | \, k\in \mathbb{Z} \} = \{...,a^{-k}, a^{-(k-1)}, ..., a^{-2}, a^{-1}, e, a, a^2, ..., a^{k-1},a^k, ... \}$
+\end{center}
+\end{def.}
+\begin{obs*} Si $G$ es finito, se tiene que existe $k \leq |G|$ tal que $\langle a \rangle = \{e, a, a^2, ..., a^{k-1} \}$. Además, es interesante notar que $a^{-k} = (a^{k})^{-1}$. En efecto, $\underbrace{a \circ ... \circ a}_{k-\mbox{veces}} \circ \underbrace{a^{-1} \circ ... \circ a^{-1}}_{k-\mbox{veces}} = e$.\\
+\end{obs*}
+
+\begin{teo.}\label{teo4} Sea $(G, \circ)$ un grupo. Para todo $a\in G$, $(\langle a \rangle, \circ)$ es un subgrupo de $(G, \circ)$.
+\end{teo.}
+\begin{proof}
+Como $\langle a \rangle \subseteq G$, solo hace falta demostrar que $\left( \langle a \rangle, \circ \right)$ es un grupo:
+\begin{itemize}
+\item $a^k \circ a^j = \underbrace{a \circ ... \circ a}_{k-\mbox{veces}} \circ \underbrace{a \circ ... \circ a}_{j-\mbox{veces}} = \underbrace{a \circ ... \circ a}_{j+k-\mbox{veces}} = a^{j+k} \in \langle a \rangle$
+\item $e = a^0 \in \langle a \rangle$
+\item $a^k \circ a^{-k} = e$, donde $a^{-k} \in \langle a \rangle$
+\end{itemize}
+\end{proof}
+\begin{cor.}\label{cor2} Sea $(G, \circ)$ un grupo. Luego para todo $a\in G$ se tiene que $\left|\langle a \rangle \right| \, |  \, \left| G \right|$.
+\end{cor.}
+\begin{proof}
+La demostración es directa de los teoremas \ref{teo3} y \ref{teo4}.
+\end{proof}
+\begin{cor.}\label{cor3} Si $|G|$ es primo y $a\in G\smallsetminus \{e\}$, se tiene que $\langle a \rangle = G$.
+\end{cor.}
+\begin{proof}
+Notemos que $a \in \langle a \rangle$ y $e\in \langle a \rangle$. Luego, $\left| \langle a \rangle \right| \geq 2$. Por el corolario \ref{cor2} y como $|G|$ es primo, necesariamente $\left| \langle a \rangle \right| = |G|$, lo que implica que $\langle a \rangle = G$.
+\end{proof}
+\begin{def.}\label{def7} Un grupo $(G, \circ)$ es \textbf{cíclico} si existe $a\in G$ tal que $\langle a \rangle = G$. En tal caso, se dice que $a$ es un generador de $(G, \circ)$.
+\end{def.}
+
+\begin{teo.}\label{teo5} Sea $a\in \mathbb{Z}_n$. Entonces $a$ es generador de $(\mathbb{Z}_n, +)$ si y solo si $\mcd(a,n)=1$.
+\end{teo.}
+\begin{proof}
+$(\Rightarrow)$ $\langle a \rangle = \{k a \, |\,  k \in \{ 1,..., n \} \}$. Como $a$ es generador, $|\langle a \rangle| = n$.
+\begin{center}
+$\begin{array}{l c l}
+\Rightarrow ia &\not \equiv &0 \mod n \text{ para } i\in \{1,...,n-1\}
+\end{array}$
+\end{center}
+
+Supongamos que $\mcd(a,n)=c>1$, luego existen $a', n'$ tales que $a=ca'$, $n= cn'$, $1\leq a' <a$ y $1\leq n' < n$. Pero entonces $n'a = na'$, por lo tanto $n'a \equiv 0 \mod n$ con $1\leq n' < n$, lo que es contradicción.\\
+
+$(\Leftarrow)$ Supongamos que $a$ no es generador de $(\mathbb{Z}_n, +)$. Entonces existe $l$ con $1\leq l < n$ tal que $l a \equiv 0 \mod n$. Luego $n | l a$ pero $n \notdivides l$. Por lo tanto existe un número primo $p$ tal que $p|a$ y $p|n$. Así $\mcd(n,a) \geq p >1$, con lo que concluye la demostración.
+\end{proof}
+\begin{cor.}\label{corolarito} El grupo $\left( \mathbb{Z}_n, + \right)$ tiene $\phi(n)$ generadores, donde $\phi$ es la función indicatriz de Euler.
+\end{cor.}
+\begin{def.}\label{def8} Sean $(G, \bullet)$ y $(H, \circ)$ grupos. Se dice que una función $f: G \rightarrow H$ es un \textbf{isomorfismo} de $(G, \bullet)$ en $(H, \circ)$ si:
+\begin{itemize}
+\item $f$ es biyectiva.
+\item $f(a\bullet b) = f(a) \circ f(b)$ para todo $a,b\in G$.
+\end{itemize}
+Si existe un isomorfismo de $(G, \bullet)$ en $(H, \circ)$, decimos que $(G, \bullet)$ y $(H, \circ)$ son isomorfos, lo que se denota por $(G, \bullet) \cong (H, \circ)$.
+\end{def.}
+\begin{teo.}\label{teo6} Si $(G, \bullet)$ y $(H, \circ)$ son grupos finitos cíclicos tales que $|G| = |H|$, entonces $(G, \bullet) \cong (H, \circ)$.
+\end{teo.}
+\begin{proof}
+Como son grupos finitos cíclicos, existen $a\in G$ y $b \in H$ tales que $G = \langle a \rangle$ y $H = \langle b \rangle$. Además existe $l\in \mathbb{N}$ tal que $|G| = |H| = l$. Luego, la función $f: G \rightarrow H$ definida por $f(a^k) = b^k$ para cada $k\in \{ 1,...,l\}$ es biyectiva y cumple que:
+\begin{center}
+$\begin{array}{r c l}
+f(a^i \bullet a^j) &= &f(a^{i+j})\\
+&= &b^{i+j}\\
+&= &b^i \circ b^j\\
+&= &f(a^i)\circ f(a^j)\\
+\end{array}$
+\end{center}
+\end{proof}
+\begin{cor.}\label{cor4} Si $(G, \circ)$ es un grupo finito cíclico, entonces tiene $\phi (|G|)$ generadores, donde $\phi$ es la función indicatriz de Euler.
+\end{cor.}
+\begin{proof}
+Es consecuencia directa de que $(G, \circ)$ es isomorfo a $(\mathbb{Z}_{|G|}, +)$ por el teorema \ref{teo6} y del hecho que $(\mathbb{Z}_{|G|}, +)$ tiene $\phi (|G|)$ generadores por el corolario \ref{corolarito}.
+\end{proof}
+\end{normalsize}
+\end{document}
