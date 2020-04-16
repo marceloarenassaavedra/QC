@@ -373,40 +373,59 @@ El circuito asociado a $F$ a partir de $\bf U$ se ve como sigue:
     % Qubits Input
     \node at (0,0) (q1) {$x_1$};
     \node at (0,-0.8) (q2) {$x_2$};
-    \node at (-0.3, -1.6) (qi) {$x_i \quad \vdots$};
+    %\node at (-0.3, -1.6) (qi) {$x_i \quad \vdots$};
+    \node at (0, -1.5) (xidots) {$\vdots$};
+    \node[aux] at (0.1, -1.6) (xiaux) {};
+    \node at (-0.5, -1.6) (xi) {$x_i$};
     \node at (-0.3, -2.4) (qnmm) {$x_{n-m}$};
     \node at (-0.5, -3.2) (qnmmp1) {$x_{n-m+1}$};
-    \node at (-0.9, -4) (qnmmp1pj) {$x_{n-m + 1 + j} \quad \vdots$};
+    %\node at (-0.9, -4) (qnmmp1pj) {$x_{n-m + 1 + j} \quad \vdots$};
+    \node at (0, -3.9) (qnmmp1pjdots) {$\vdots$};
+    \node[aux] at (0.1, -4) (qnmmp1pjaux) {};
+    \node at (-1, -4) (qnmmp1pj) {$x_{n-m + 1 + j}$};
     \node at (0, -4.8) (qn) {$x_n$};
-    \node at (-0.3, -5.6) (q01) {$(1) \quad 0$};
-    \node at (-0.3, -6.4) (q0j) {$(j) \quad \vdots$};
-    \node at (-0.3, -7.2) (q0m) {$(m) \quad 0$};
-    %
+    \node at (0, -5.6) (q01) {$0$};
+    \node at (-1, -5.6) (1) {$\scriptstyle (1)$};
+    %\node at (-0.3, -6.4) (q0j) {$(j) \quad \vdots$};
+    \node at (0, -6.3) (q0jdots) {$\vdots$};
+    \node[aux] at (0.1, -6.4) (q0jaux) {};
+    \node at (-0.5, -6.4) (q0j) {$0$};
+    \node at (-1, -6.4) (j) {$\scriptstyle (j)$};
+    \node at (0, -7.2) (q0m) {$0$};
+    \node at (-1, -7.2) (m) {$\scriptstyle (m)$};
     % Aux U
     \node[aux] (opaux11) at (2, 0) {} edge [-] (q1);
     \node[aux] (opaux21) at (2, -0.8) {} edge [-] (q2);
-    \node[aux] (opaux31) at (2, -1.6) {} edge [-] (qi);
+    \node[aux] (opaux31) at (2, -1.6) {} edge [-] (xiaux);
     \node[aux] (opaux51) at (2, -3.2) {} edge [-] (qnmmp1);
-    \node[aux] (opaux61) at (2, -4) {} edge [-] (qnmmp1pj);
+    \node[aux] (opaux61) at (2, -4) {} edge [-] (qnmmp1pjaux);
     \node[aux] (opaux71) at (2, -4.8) {} edge [-] (qn);
     % Aux U*
     \node[aux] (opaux12) at (8.5, 0) {} edge [-] (q1);
     \node[aux] (opaux22) at (8.5, -0.8) {} edge [-] (q2);
-    \node[aux] (opaux32) at (8.5, -1.6) {} edge [-] (qi);
+    \node[aux] (opaux32) at (8.5, -1.6) {} edge [-] (xiaux);
     \node[aux] (opaux42) at (8.5, -2.4) {};
     \node[aux] (opaux52) at (8.5, -3.2) {} edge [-] (qnmmp1);
-    \node[aux] (opaux62) at (8.5, -4) {} edge [-] (qnmmp1pj);
+    \node[aux] (opaux62) at (8.5, -4) {} edge [-] (qnmmp1pjaux);
     \node[aux] (opaux72) at (8.5, -4.8) {} edge [-] (qn);
     % Qubits output
     \node at (10.5,0) (x1new) {$x_1$} edge [-] (opaux12);
     \node at (10.5,-0.8) (x2new) {$x_2$} edge [-] (opaux22);
-    \node at (10.8, -1.6) (xinew) {$\vdots \quad x_i$} edge [-] (opaux32);
+    %\node at (10.8, -1.6) (xinew) {$\vdots \quad x_i$} edge [-] (opaux32);
+    \node at (10.5, -1.5) (xidots) {$\vdots$};
+    \node[aux] at (10.4, -1.6) (xiaux) {} edge [-] (opaux32);
+    \node at (11, -1.6) (xipj) {$x_i$};
     \node at (10.8, -2.4) (xnmmnew) {$x_{n-m}$} edge [-] (opaux42);
     \node at (11, -3.2) (xnmmp1new) {$x_{n-m+1}$} edge [-] (opaux52);
-    \node at (11.4, -4) (xnmmp1pj) {$\vdots \quad x_{n-m + 1 + j}$} edge [-] (opaux62);
+    %\node at (11.4, -4) (xnmmp1pj) {$\vdots \quad x_{n-m + 1 + j}$} edge [-] (opaux62);
+    \node at (10.5, -3.9) (xnmmp1pjdotsnew) {$\vdots$};
+    \node[aux] at (10.4, -4) (xnmmp1pjauxnew) {} edge [-] (opaux62);
+    \node at (11.6, -4) (xnmmp1pjnew) {$x_{n-m + 1 + j}$};
     \node at (10.5, -4.8) (xn) {$x_n$} edge [-] (opaux72);
     \node at (10.5, -5.6) (y1) {$y_1$} edge [-] (q01);
-    \node at (10.5, -6.4) (yj) {$y_j$} edge [-] (q0j);
+    \node at (10.5, -6.3) (yjdots) {$\vdots$};
+    \node[aux] at (10.4, -6.4) (yjaux) {} edge [-] (q0jaux);
+    \node at (11, -6.4) (yj) {$y_j$};
     \node at (10.5, -7.2) (ym) {$y_m$} edge [-] (q0m);
     % Phases
     \node[phase] at (3.625, -3.2) (ph1) {};
